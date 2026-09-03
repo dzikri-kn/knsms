@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
-  const { currentUser, users, addUser, updateUser, deleteUser, changePassword, centers, modules } = useApp();
+  const { currentUser, users, classes = [], addUser, updateUser, deleteUser, changePassword, centers, modules } = useApp();
 
   const isAdminCenter = currentUser.role === 'admin_center';
 
@@ -358,7 +358,14 @@ export const UserManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredUsers.map((u) => (
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    No users found matching the selected criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
                   <td className="py-3.5 px-5">
                     <div className="flex items-center gap-3">
@@ -455,7 +462,7 @@ export const UserManagement: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
