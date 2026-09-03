@@ -73,7 +73,7 @@ export const ParentDashboard: React.FC<{ onNavigate: (tab: string) => void }> = 
               </div>
             </button>
           );
-        })}
+        }))}
       </div>
 
       {/* Child Metrics Overview */}
