@@ -51,6 +51,7 @@ export const UserManagement: React.FC = () => {
   const [level, setLevel] = useState('JK 8-12');
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [moduleCategoryFilter, setModuleCategoryFilter] = useState<string>('all');
+  const [studentSearchQuery, setStudentSearchQuery] = useState<string>('');
 
   const allStudents = users.filter(u => u.role === 'student');
   const allParents = users.filter(u => u.role === 'parent');
@@ -183,6 +184,7 @@ export const UserManagement: React.FC = () => {
     setSelectedStudentIds([]);
     setSelectedParentIds([]);
     setSelectedModules(['JK 12-16 Python First']);
+    setStudentSearchQuery('');
     setIsCreateModalOpen(true);
   };
 
@@ -197,6 +199,7 @@ export const UserManagement: React.FC = () => {
     setSelectedStudentIds(user.childrenIds && user.childrenIds.length > 0 ? user.childrenIds : []);
     setSelectedParentIds(user.handledParentIds && user.handledParentIds.length > 0 ? user.handledParentIds : []);
     setLevel(user.level || 'JK 8-12');
+    setStudentSearchQuery('');
     
     // Parse existing specialization into array
     if (user.specialization) {
@@ -218,12 +221,32 @@ export const UserManagement: React.FC = () => {
       ? selectedModules.join(', ') 
       : 'General Coding Teacher';
 
-    const isMultiCenterRole = role === 'admin_center' || role === 'student_advisor' || role === 'parent' || role === 'teacher';
+    const isMultiCenterRole = role === 'admin_center' || role === 'student_advisor' || role === 'teacher';
     const isSuperAdmin = role === 'admin';
 
-    const finalCenterId = isSuperAdmin ? 'all' : (isMultiCenterRole ? (selectedCenterIds[0] || centerId) : centerId);
-    const finalCenterIds = isSuperAdmin ? centers.map(c => c.id) : (isMultiCenterRole ? selectedCenterIds : (centerId ? [centerId] : []));
-    const finalCenterName = isSuperAdmin ? 'All Centers (Nationwide)' : (isMultiCenterRole ? multipleCenterNames : selectedCenter?.name);
+    // For parents, their centers are naturally determined by their linked children
+    const linkedStudents = users.filter(u => selectedStudentIds.includes(u.id));
+    const parentCenterIds = Array.from(new Set(linkedStudents.map(s => s.centerId).filter(Boolean))) as string[];
+    const parentCenters = centers.filter(c => parentCenterIds.includes(c.id));
+    const parentCenterNames = parentCenters.map(c => c.name).join(', ') || 'Online / Branch';
+
+    const finalCenterId = isSuperAdmin 
+      ? 'all' 
+      : role === 'parent' 
+        ? (parentCenterIds[0] || 'ctr-kemayoran') 
+        : (isMultiCenterRole ? (selectedCenterIds[0] || centerId) : centerId);
+
+    const finalCenterIds = isSuperAdmin 
+      ? centers.map(c => c.id) 
+      : role === 'parent'
+        ? (parentCenterIds.length > 0 ? parentCenterIds : ['ctr-kemayoran'])
+        : (isMultiCenterRole ? selectedCenterIds : (centerId ? [centerId] : []));
+
+    const finalCenterName = isSuperAdmin 
+      ? 'All Centers (Nationwide)' 
+      : role === 'parent'
+        ? parentCenterNames
+        : (isMultiCenterRole ? multipleCenterNames : selectedCenter?.name);
 
     if (editingUser) {
       updateUser(editingUser.id, {
@@ -553,7 +576,7 @@ export const UserManagement: React.FC = () => {
                   ))}
                 </select>
               </div>
-            ) : (
+            ) : role === 'parent' ? null : (
               <div className="space-y-2 pt-1 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-gray-700 uppercase">
@@ -775,40 +798,86 @@ export const UserManagement: React.FC = () => {
                 </div>
               </div>
 
+              {/* Search Bar for Filtering Students */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari nama murid, email, atau center..."
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white"
+                />
+                {studentSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
               {/* Multiple Choice Checkboxes for Students */}
-              <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-xl p-2.5 bg-gray-50/50 space-y-1.5 divide-y divide-gray-100">
-                {allStudents.map(student => {
-                  const isChecked = selectedStudentIds.includes(student.id);
-                  return (
-                    <label
-                      key={student.id}
-                      className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
-                        isChecked ? 'bg-primary-50/90 border border-primary-300' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleToggleStudent(student.id)}
-                        className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 shrink-0 cursor-pointer"
-                      />
-                      <Avatar name={student.name} size="xs" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900 truncate">{student.name}</span>
-                          {student.level && (
-                            <Badge variant="purple" size="sm">
-                              {student.level}
-                            </Badge>
-                          )}
+              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2.5 bg-gray-50/50 space-y-1.5 divide-y divide-gray-100">
+                {allStudents
+                  .filter(student => {
+                    if (!studentSearchQuery.trim()) return true;
+                    const q = studentSearchQuery.toLowerCase();
+                    return (
+                      student.name.toLowerCase().includes(q) ||
+                      student.email.toLowerCase().includes(q) ||
+                      (student.centerName && student.centerName.toLowerCase().includes(q)) ||
+                      (student.level && student.level.toLowerCase().includes(q))
+                    );
+                  })
+                  .map(student => {
+                    const isChecked = selectedStudentIds.includes(student.id);
+                    return (
+                      <label
+                        key={student.id}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
+                          isChecked ? 'bg-primary-50/90 border border-primary-300' : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleStudent(student.id)}
+                          className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 shrink-0 cursor-pointer"
+                        />
+                        <Avatar name={student.name} size="xs" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-900 truncate">{student.name}</span>
+                            {student.level && (
+                              <Badge variant="purple" size="sm">
+                                {student.level}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-500 truncate">
+                            {student.centerName || 'Online'} • {student.email}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-gray-500 truncate">
-                          {student.centerName || 'Online'} • {student.email}
-                        </p>
-                      </div>
-                    </label>
+                      </label>
+                    );
+                  })}
+                {allStudents.filter(student => {
+                  if (!studentSearchQuery.trim()) return true;
+                  const q = studentSearchQuery.toLowerCase();
+                  return (
+                    student.name.toLowerCase().includes(q) ||
+                    student.email.toLowerCase().includes(q) ||
+                    (student.centerName && student.centerName.toLowerCase().includes(q)) ||
+                    (student.level && student.level.toLowerCase().includes(q))
                   );
-                })}
+                }).length === 0 && (
+                  <div className="py-4 text-center text-xs text-gray-500">
+                    Tidak ditemukan murid dengan kata kunci "{studentSearchQuery}"
+                  </div>
+                )}
               </div>
 
               {/* Selected Children Badges Preview */}
