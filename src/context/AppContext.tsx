@@ -151,6 +151,7 @@ const mapClassroom = (r: any): Classroom => ({
   computerCount: Number(r.computer_count) || 6,
   facilities: r.facilities || [],
   status: r.status || 'available',
+  zoomLink: r.zoom_link || (Array.isArray(r.facilities) ? r.facilities.find((f: string) => f.startsWith('Zoom: '))?.replace('Zoom: ', '') : undefined),
 });
 
 const mapClass = (r: any): ClassItem => ({

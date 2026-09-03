@@ -16,7 +16,8 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Phone
+  Phone,
+  Video
 } from 'lucide-react';
 
 export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
@@ -39,16 +40,23 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Classroom | null>(null);
   const [roomNameInput, setRoomNameInput] = useState('');
+  const [roomZoomLinkInput, setRoomZoomLinkInput] = useState('');
+
+  const isCurrentCenterOnline = currentCenter?.id === 'ctr-online' || currentCenter?.name === 'Online';
 
   const handleOpenAddRoom = () => {
     setEditingRoom(null);
     setRoomNameInput('');
+    setRoomZoomLinkInput(isCurrentCenterOnline ? 'https://zoom.us/j/9988112233' : '');
     setIsRoomModalOpen(true);
   };
 
   const handleOpenEditRoom = (room: Classroom) => {
     setEditingRoom(room);
     setRoomNameInput(room.name);
+    // Find zoomLink if stored in facilities or class
+    const foundZoom = room.facilities.find(f => f.startsWith('Zoom: '))?.replace('Zoom: ', '') || '';
+    setRoomZoomLinkInput(foundZoom);
     setIsRoomModalOpen(true);
   };
 
@@ -56,9 +64,19 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
     e.preventDefault();
     if (!roomNameInput) return;
 
+    const baseFacilities = isCurrentCenterOnline 
+      ? ['Virtual Lab', 'Cloud Workstations', 'Screen Share Support']
+      : ['Smart TV', 'High-Speed Wi-Fi', 'AC', '6x iMac Workstations'];
+    
+    if (isCurrentCenterOnline && roomZoomLinkInput.trim()) {
+      baseFacilities.push(`Zoom: ${roomZoomLinkInput.trim()}`);
+    }
+
     if (editingRoom) {
       updateClassroom(editingRoom.id, {
-        name: roomNameInput
+        name: roomNameInput,
+        facilities: baseFacilities,
+        zoomLink: isCurrentCenterOnline ? roomZoomLinkInput.trim() : undefined,
       });
     } else {
       addClassroom({
@@ -69,11 +87,13 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
         capacity: 6,
         hasComputers: true,
         computerCount: 6,
-        facilities: ['Smart TV', 'High-Speed Wi-Fi', 'AC', '6x iMac Workstations'],
-        status: 'available'
+        facilities: baseFacilities,
+        status: 'available',
+        zoomLink: isCurrentCenterOnline ? roomZoomLinkInput.trim() : undefined,
       });
     }
     setRoomNameInput('');
+    setRoomZoomLinkInput('');
     setEditingRoom(null);
     setIsRoomModalOpen(false);
   };
@@ -231,11 +251,29 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {room.facilities.map((f, i) => (
-                        <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-medium">
+                        <span key={i} className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${
+                          f.startsWith('Zoom: ') 
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
                           {f}
                         </span>
                       ))}
                     </div>
+
+                    {/* Quick Zoom Link Button if present */}
+                    {room.facilities.find(f => f.startsWith('Zoom: ')) && (
+                      <div className="pt-2">
+                        <a
+                          href={room.facilities.find(f => f.startsWith('Zoom: '))?.replace('Zoom: ', '')}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                        >
+                          <Video className="w-3.5 h-3.5" /> Buka Zoom Room ↗
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -267,6 +305,7 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                 <th className="py-3 px-4">Room</th>
                 <th className="py-3 px-4">Schedule</th>
                 <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center">Zoom Link</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -290,6 +329,20 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                   <td className="py-3 px-4 text-center">
                     <Badge variant="success" size="sm" dot>Active</Badge>
                   </td>
+                  <td className="py-3 px-4 text-center">
+                    {cls.zoomLink ? (
+                      <a
+                        href={cls.zoomLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs transition-colors border border-blue-200"
+                      >
+                        <Video className="w-3.5 h-3.5" /> Buka Zoom
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Offline Lab</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -305,12 +358,32 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
             <input
               type="text"
               required
-              placeholder="e.g. Hopper Lab (Room 105)"
+              placeholder={isCurrentCenterOnline ? 'e.g. Zoom Room 1 (Breakout A)' : 'e.g. Hopper Lab (Room 105)'}
               value={roomNameInput}
               onChange={(e) => setRoomNameInput(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none"
             />
           </div>
+
+          {/* Zoom Meeting Link for Online Center Room */}
+          {isCurrentCenterOnline && (
+            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-1.5">
+              <label className="block text-xs font-bold text-blue-900 uppercase flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 text-blue-600" />
+                Zoom Meeting Link (Online Class)
+              </label>
+              <input
+                type="url"
+                placeholder="https://zoom.us/j/9988112233"
+                value={roomZoomLinkInput}
+                onChange={(e) => setRoomZoomLinkInput(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-blue-700">
+                Tiap sesi kelas online di ruangan ini dapat mengakses link Zoom ini secara langsung.
+              </p>
+            </div>
+          )}
 
           <div className="p-3 bg-primary-50/70 border border-primary-200 rounded-xl space-y-1">
             <div className="flex items-center justify-between text-xs font-bold text-primary-900">

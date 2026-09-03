@@ -156,6 +156,10 @@ export const ClassManagement: React.FC = () => {
 
     // Clear student selection when center changes to avoid mismatch
     setSelectedStudentIds([]);
+
+    if (newCenterId === 'ctr-online') {
+      if (!zoomLink) setZoomLink('https://zoom.us/j/9988112233');
+    }
   };
 
   // Helper to parse "HH:MM" into minutes from midnight
@@ -200,7 +204,7 @@ export const ClassManagement: React.FC = () => {
     setDayOfWeek('Saturday');
     setStartTime('10:00');
     setEndTime('12:00');
-    setZoomLink('');
+    setZoomLink(initialCenter === 'ctr-online' ? 'https://zoom.us/j/9988112233' : '');
     setIsModalOpen(true);
   };
 
@@ -723,20 +727,29 @@ export const ClassManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Step 7: Zoom Meeting Link (Only if Online Center) */}
+          {/* Step 7: Zoom Meeting Link (For Online Center / Classes) */}
           {(centerId === 'ctr-online' || centers.find(c => c.id === centerId)?.name === 'Online') && (
-            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
-              <label className="block text-xs font-bold text-blue-900 uppercase mb-1 flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5 text-blue-600" />
-                7. Zoom Meeting Link (Online Class Only)
+            <div className="p-3.5 bg-blue-50/80 border-2 border-blue-200 rounded-xl space-y-1.5 animate-in fade-in">
+              <label className="block text-xs font-bold text-blue-950 uppercase flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Video className="w-4 h-4 text-blue-600" />
+                  7. Zoom Meeting Link (1 Link per Kelas Online)
+                </span>
+                <span className="text-[10px] bg-blue-200/80 text-blue-900 font-bold px-2 py-0.5 rounded-full">
+                  Online Class Only
+                </span>
               </label>
               <input
                 type="url"
+                required
                 placeholder="https://zoom.us/j/9988112233"
                 value={zoomLink}
                 onChange={(e) => setZoomLink(e.target.value)}
-                className="w-full px-3 py-2 border border-blue-300 bg-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3.5 py-2.5 border border-blue-300 bg-white rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              <p className="text-[11px] text-blue-700">
+                Setiap kelas online memiliki 1 link Zoom meeting unik yang dapat diakses langsung oleh siswa, orang tua, dan guru.
+              </p>
             </div>
           )}
 

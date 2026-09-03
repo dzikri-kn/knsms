@@ -81,6 +81,7 @@ export interface Classroom {
   computerCount: number;
   facilities: string[];
   status: 'available' | 'in_use' | 'maintenance';
+  zoomLink?: string;
 }
 
 export interface ModuleCurriculum {
