@@ -18,7 +18,9 @@ import {
   CalendarDays,
   Sparkles,
   MapPin,
-  Building2
+  Building2,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 
 export const ScheduleTimetable: React.FC = () => {
@@ -104,6 +106,54 @@ export const ScheduleTimetable: React.FC = () => {
     const matchesType = selectedTypeFilter === 'all' || cls.type === selectedTypeFilter;
     return matchesCenter && matchesRoom && matchesType;
   });
+
+  // Helper to parse "HH:MM" into minutes from midnight
+  const parseTimeToMinutes = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    const parts = timeStr.trim().split(':').map(Number);
+    return (parts[0] || 0) * 60 + (parts[1] || 0);
+  };
+
+  const isTimeOverlapping = (startA: string, endA: string, startB: string, endB: string): boolean => {
+    const sA = parseTimeToMinutes(startA);
+    const eA = parseTimeToMinutes(endA);
+    const sB = parseTimeToMinutes(startB);
+    const eB = parseTimeToMinutes(endB);
+    return Math.max(sA, sB) < Math.min(eA, eB);
+  };
+
+  // Find all schedule conflicts across the visible classes (Teacher conflict or Room conflict)
+  const conflictingClassIds = new Set<string>();
+  const conflictWarnings: string[] = [];
+
+  for (let i = 0; i < filteredClasses.length; i++) {
+    for (let j = i + 1; j < filteredClasses.length; j++) {
+      const c1 = filteredClasses[i];
+      const c2 = filteredClasses[j];
+
+      if (c1.dayOfWeek === c2.dayOfWeek && isTimeOverlapping(c1.startTime, c1.endTime, c2.startTime, c2.endTime)) {
+        // 1. Teacher conflict
+        if (c1.teacherId === c2.teacherId || c1.teacherName === c2.teacherName) {
+          conflictingClassIds.add(c1.id);
+          conflictingClassIds.add(c2.id);
+          const warn = `Bentrok Guru: ${c1.teacherName} terdaftar di "${c1.name}" dan "${c2.name}" (${c1.dayOfWeek}, ${c1.startTime} - ${c1.endTime})`;
+          if (!conflictWarnings.includes(warn)) conflictWarnings.push(warn);
+        }
+
+        // 2. Room conflict in physical centers
+        if (
+          c1.centerId !== 'ctr-online' && 
+          c1.centerId === c2.centerId && 
+          (c1.roomId === c2.roomId || c1.roomName === c2.roomName)
+        ) {
+          conflictingClassIds.add(c1.id);
+          conflictingClassIds.add(c2.id);
+          const warn = `Bentrok Ruangan: ${c1.roomName} digunakan bersamaan oleh "${c1.name}" dan "${c2.name}" di ${c1.centerName}`;
+          if (!conflictWarnings.includes(warn)) conflictWarnings.push(warn);
+        }
+      }
+    }
+  }
 
   // Calculate pixel top and height for time placement
   const calculatePosition = (startTime: string, endTime: string) => {
@@ -288,6 +338,27 @@ export const ScheduleTimetable: React.FC = () => {
         </div>
       </div>
 
+      {/* Schedule Conflict Alert Banner */}
+      {conflictWarnings.length > 0 && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 text-rose-900 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2 font-bold text-sm text-rose-800 mb-1">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            Terdeteksi {conflictWarnings.length} Jadwal Bertabrakan (Schedule Conflict)!
+          </div>
+          <p className="text-xs text-rose-700 mb-2">
+            Guru atau ruangan berikut dijadwalkan secara bersamaan pada waktu yang sama. Silakan edit kelas terkait untuk memindahkan waktu atau mengganti guru/ruangan.
+          </p>
+          <ul className="space-y-1 text-xs">
+            {conflictWarnings.map((warn, idx) => (
+              <li key={idx} className="flex items-center gap-1.5 font-semibold text-rose-800 bg-white/70 px-2.5 py-1 rounded-lg border border-rose-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span>
+                {warn}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Main Calendar View Area */}
       {currentView === 'week' && (
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
@@ -357,18 +428,25 @@ export const ScheduleTimetable: React.FC = () => {
                     {dayEvents.map((cls) => {
                       const pos = calculatePosition(cls.startTime, cls.endTime);
                       const style = getEventStyle(cls);
+                      const isConflict = conflictingClassIds.has(cls.id);
 
                       return (
                         <div
                           key={cls.id}
                           onClick={() => handleOpenDetail(cls)}
                           style={{ top: pos.top, height: pos.height }}
-                          className={`absolute left-1 right-1 rounded-xl p-2.5 border transition-all cursor-pointer shadow-xs hover:shadow-md hover:z-20 flex flex-col justify-between overflow-hidden ${style.bg}`}
+                          className={`absolute left-1 right-1 rounded-xl p-2.5 border transition-all cursor-pointer shadow-xs hover:shadow-md hover:z-20 flex flex-col justify-between overflow-hidden ${
+                            isConflict 
+                              ? 'ring-2 ring-rose-500 border-rose-400 bg-rose-50/95 text-rose-900 animate-pulse' 
+                              : style.bg
+                          }`}
                         >
                           <div>
                             <div className="flex items-center justify-between gap-1 mb-1">
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${style.badge}`}>
-                                {cls.type}
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                                isConflict ? 'bg-rose-100 text-rose-800 border-rose-300' : style.badge
+                              }`}>
+                                {isConflict ? '⚠️ CONFLICT' : cls.type}
                               </span>
                               <span className="text-[10px] font-semibold opacity-75">
                                 {cls.startTime} - {cls.endTime}

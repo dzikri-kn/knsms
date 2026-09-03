@@ -16,7 +16,9 @@ import {
   ExternalLink,
   Layers,
   Building2,
-  Filter
+  Filter,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 
 export const ClassManagement: React.FC = () => {
@@ -33,6 +35,8 @@ export const ClassManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassItem | null>(null);
   const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
+
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form states
   const [className, setClassName] = useState('');
@@ -154,7 +158,24 @@ export const ClassManagement: React.FC = () => {
     setSelectedStudentIds([]);
   };
 
+  // Helper to parse "HH:MM" into minutes from midnight
+  const parseTimeToMinutes = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    const parts = timeStr.trim().split(':').map(Number);
+    return (parts[0] || 0) * 60 + (parts[1] || 0);
+  };
+
+  // Check if two time ranges on the same day overlap
+  const isTimeOverlapping = (startA: string, endA: string, startB: string, endB: string): boolean => {
+    const sA = parseTimeToMinutes(startA);
+    const eA = parseTimeToMinutes(endA);
+    const sB = parseTimeToMinutes(startB);
+    const eB = parseTimeToMinutes(endB);
+    return Math.max(sA, sB) < Math.min(eA, eB);
+  };
+
   const handleOpenCreate = () => {
+    setFormError(null);
     setEditingClass(null);
     const initialCenter = centers[0]?.id || 'ctr-kemayoran';
     setCenterId(initialCenter);
@@ -184,6 +205,7 @@ export const ClassManagement: React.FC = () => {
   };
 
   const handleOpenEdit = (cls: ClassItem) => {
+    setFormError(null);
     setEditingClass(cls);
     setClassName(cls.name);
     setClassCode(cls.code);
@@ -202,10 +224,54 @@ export const ClassManagement: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    // Validate times
+    const startMin = parseTimeToMinutes(startTime);
+    const endMin = parseTimeToMinutes(endTime);
+    if (endMin <= startMin) {
+      setFormError('Jam selesai harus lebih besar dari jam mulai kelas.');
+      return;
+    }
+
     const selModule = modules.find(m => m.id === moduleId) || modules[0];
     const selTeacher = users.find(t => t.id === teacherId) || activeTeachers[0];
     const selCenter = centers.find(c => c.id === centerId) || centers[0];
     const selRoom = classrooms.find(r => r.id === roomId) || activeRooms[0];
+
+    // Check conflict: Teacher or Room overlap on the same day
+    const otherClasses = classes.filter(c => editingClass ? c.id !== editingClass.id : true);
+
+    // 1. Teacher Conflict Check (A teacher cannot be in two classes at the same time, even across different centers)
+    const teacherConflict = otherClasses.find(c => 
+      (c.teacherId === selTeacher.id || c.teacherName === selTeacher.name) &&
+      c.dayOfWeek === dayOfWeek &&
+      isTimeOverlapping(c.startTime, c.endTime, startTime, endTime)
+    );
+
+    if (teacherConflict) {
+      setFormError(
+        `Jadwal bentrok untuk Guru "${selTeacher.name}"! Guru sudah mengajar di kelas "${teacherConflict.name}" (${teacherConflict.dayOfWeek}, ${teacherConflict.startTime} - ${teacherConflict.endTime}) di ${teacherConflict.centerName}.`
+      );
+      return;
+    }
+
+    // 2. Room Conflict Check (Physical room cannot be used by two classes at the same time in the same center)
+    if (selCenter.id !== 'ctr-online' && selCenter.name !== 'Online') {
+      const roomConflict = otherClasses.find(c => 
+        (c.centerId === selCenter.id) &&
+        (c.roomId === selRoom.id || c.roomName === selRoom.name) &&
+        c.dayOfWeek === dayOfWeek &&
+        isTimeOverlapping(c.startTime, c.endTime, startTime, endTime)
+      );
+
+      if (roomConflict) {
+        setFormError(
+          `Ruangan bentrok! Ruangan "${selRoom.name}" sudah digunakan oleh kelas "${roomConflict.name}" pada ${roomConflict.dayOfWeek}, ${roomConflict.startTime} - ${roomConflict.endTime}.`
+        );
+        return;
+      }
+    }
 
     if (editingClass) {
       updateClass(editingClass.id, {
@@ -328,20 +394,39 @@ export const ClassManagement: React.FC = () => {
 
       {/* Classes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredClasses.map((cls) => (
-          <Card key={cls.id} className="flex flex-col justify-between hover:shadow-md transition-shadow relative">
+        {filteredClasses.map((cls) => {
+          // Check if this class has any conflict with other classes
+          const otherClasses = classes.filter(c => c.id !== cls.id);
+          const hasConflict = otherClasses.some(c => 
+            c.dayOfWeek === cls.dayOfWeek &&
+            isTimeOverlapping(c.startTime, c.endTime, cls.startTime, cls.endTime) &&
+            ((c.teacherId === cls.teacherId || c.teacherName === cls.teacherName) ||
+             (cls.centerId !== 'ctr-online' && c.centerId === cls.centerId && (c.roomId === cls.roomId || c.roomName === cls.roomName)))
+          );
+
+          return (
+          <Card key={cls.id} className={`flex flex-col justify-between hover:shadow-md transition-shadow relative ${
+            hasConflict ? 'border-2 border-rose-400 bg-rose-50/20' : ''
+          }`}>
             <div>
               <div className="flex items-start justify-between">
-                <Badge
-                  variant={
-                    cls.type === 'Regular' ? 'primary' :
-                    cls.type === 'Trial' ? 'warning' :
-                    cls.type === 'Make-up' ? 'purple' : 'success'
-                  }
-                  size="sm"
-                >
-                  {cls.type}
-                </Badge>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge
+                    variant={
+                      cls.type === 'Regular' ? 'primary' :
+                      cls.type === 'Trial' ? 'warning' :
+                      cls.type === 'Make-up' ? 'purple' : 'success'
+                    }
+                    size="sm"
+                  >
+                    {cls.type}
+                  </Badge>
+                  {hasConflict && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-300 animate-pulse">
+                      <AlertTriangle className="w-3 h-3" /> Jadwal Bertabrakan
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => handleOpenEdit(cls)} aria-label="Edit Class" className="p-1 text-gray-400 hover:text-primary-600 rounded cursor-pointer">
                     <Edit className="w-4 h-4" />
@@ -418,6 +503,13 @@ export const ClassManagement: React.FC = () => {
       {/* Modal Create/Edit */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingClass ? 'Edit Class' : 'Create New Class'}>
         <form onSubmit={handleSave} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-start gap-2 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div>{formError}</div>
+            </div>
+          )}
+
           {/* Step 1: Select Center */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
