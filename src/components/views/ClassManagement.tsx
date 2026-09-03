@@ -497,7 +497,8 @@ export const ClassManagement: React.FC = () => {
               )}
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal Create/Edit */}
