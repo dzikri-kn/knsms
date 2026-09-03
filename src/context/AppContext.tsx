@@ -16,7 +16,10 @@ import { executeNeonQuery } from '../services/neonDbClient';
 interface AppContextType {
   currentUser: User;
   setCurrentUser: (user: User) => void;
+  originalAdminUser: User | null;
+  isSuperAdminSession: boolean;
   switchRole: (role: UserRole) => void;
+  resetToAdmin: () => void;
 
   // Authentication
   isAuthenticated: boolean;
@@ -223,8 +226,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     status: 'active', joinDate: '', centerId: '', centerIds: [], specialization: '', level: '',
   };
   const [currentUser, setCurrentUser] = useState<User>(EMPTY_USER);
+  const [originalAdminUser, setOriginalAdminUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [selectedCenterId, setSelectedCenterId] = useState<string>('all');
+
+  // Check if current session originated from a Super Admin
+  const isSuperAdminSession = Boolean(
+    currentUser.role === 'admin' || (originalAdminUser && originalAdminUser.role === 'admin')
+  );
 
   // ─── Fetch all data from Neon DB ─────────────────────────────────────────
   const refreshDb = async () => {
@@ -286,12 +295,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (foundUser) {
         setCurrentUser(foundUser);
-        setIsAuthenticated(true);
         if (foundUser.role === 'admin') {
+          setOriginalAdminUser(foundUser);
           setSelectedCenterId('all');
         } else {
+          setOriginalAdminUser(null);
           setSelectedCenterId(foundUser.centerId || 'all');
         }
+        setIsAuthenticated(true);
         return true;
       }
     } catch (e) {
@@ -303,19 +314,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     setIsAuthenticated(false);
     setCurrentUser(EMPTY_USER);
+    setOriginalAdminUser(null);
     setSelectedCenterId('all');
   };
 
+  // Switch role is ONLY available if current session belongs to Super Admin
   const switchRole = (role: UserRole) => {
+    if (!isSuperAdminSession) return;
+
+    if (role === 'admin') {
+      resetToAdmin();
+      return;
+    }
+
+    // Keep reference of the original super admin if not set
+    if (!originalAdminUser && currentUser.role === 'admin') {
+      setOriginalAdminUser(currentUser);
+    }
+
     const targetUser = users.find(u => u.role === role);
     if (targetUser) {
       setCurrentUser(targetUser);
-      setIsAuthenticated(true);
-      if (role === 'admin') {
-        setSelectedCenterId('all');
-      } else {
-        setSelectedCenterId(targetUser.centerId || 'all');
-      }
+      setSelectedCenterId(targetUser.centerId || 'all');
+    }
+  };
+
+  const resetToAdmin = () => {
+    if (!isSuperAdminSession) return;
+    const adminUser = originalAdminUser || users.find(u => u.role === 'admin');
+    if (adminUser) {
+      setCurrentUser(adminUser);
+      setSelectedCenterId('all');
     }
   };
 
@@ -583,7 +612,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentUser: currentUser,
         setCurrentUser,
+        originalAdminUser,
+        isSuperAdminSession,
         switchRole,
+        resetToAdmin,
         isAuthenticated,
         login,
         logout,

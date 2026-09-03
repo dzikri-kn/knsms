@@ -26,6 +26,11 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
+  // When switching roles, always default back to dashboard of that role
+  React.useEffect(() => {
+    setActiveTab('dashboard');
+  }, [currentUser.role]);
+
   // Show loading while DB connects
   if (isLoadingDb && !isAuthenticated) {
     return (

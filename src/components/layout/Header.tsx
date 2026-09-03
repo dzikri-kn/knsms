@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Avatar, Button, Modal, Badge } from '../ui';
+import { UserRole } from '../../types';
 import { 
   Menu,
   LogOut,
@@ -8,7 +9,11 @@ import {
   Mail,
   Phone,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ShieldAlert,
+  Repeat,
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -17,8 +22,17 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
-  const { currentUser, logout, changePassword } = useApp();
+  const { 
+    currentUser, 
+    logout, 
+    changePassword, 
+    isSuperAdminSession, 
+    originalAdminUser, 
+    switchRole, 
+    resetToAdmin 
+  } = useApp();
 
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -68,10 +82,115 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
           >
             <Menu className="w-5 h-5" />
           </button>
+
+          {/* Super Admin Role Switcher Indicator & Quick Switcher */}
+          {isSuperAdminSession && (
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleDropdownOpen(prev => !prev)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                  currentUser.role === 'admin'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/80'
+                    : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 ring-2 ring-amber-400/30'
+                }`}
+                title="Super Admin Role Switcher"
+              >
+                <Repeat className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">View Role:</span>
+                <span className="uppercase tracking-wide font-extrabold">
+                  {currentUser.role.replace('_', ' ')}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              {/* Role Dropdown Menu */}
+              {isRoleDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsRoleDropdownOpen(false)}
+                  />
+                  <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 py-2 divide-y divide-gray-100 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-2 bg-gray-50/70">
+                      <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        Super Admin Switch View
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Lihat sistem dari perspektif role manapun.
+                      </p>
+                    </div>
+
+                    <div className="p-1 space-y-0.5">
+                      {[
+                        { role: 'admin', label: 'Super Admin (Default)', desc: 'Full access nationwide' },
+                        { role: 'admin_center', label: 'Admin Center', desc: 'Manage center & staff' },
+                        { role: 'student_advisor', label: 'Student Advisor', desc: 'CRM & leads tracking' },
+                        { role: 'teacher', label: 'Teacher', desc: 'Attendance & grading' },
+                        { role: 'parent', label: 'Parent', desc: 'Children progress' },
+                        { role: 'student', label: 'Student', desc: 'Learning & portfolio' },
+                      ].map((item) => {
+                        const isCurrent = currentUser.role === item.role;
+                        return (
+                          <button
+                            key={item.role}
+                            onClick={() => {
+                              switchRole(item.role as UserRole);
+                              setIsRoleDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                              isCurrent 
+                                ? 'bg-purple-50 text-purple-700 font-bold' 
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <div>
+                              <div className="text-xs font-semibold">{item.label}</div>
+                              <div className="text-[10px] text-gray-400">{item.desc}</div>
+                            </div>
+                            {isCurrent && (
+                              <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {currentUser.role !== 'admin' && (
+                      <div className="p-1 bg-amber-50/50">
+                        <button
+                          onClick={() => {
+                            resetToAdmin();
+                            setIsRoleDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Repeat className="w-3.5 h-3.5" />
+                          Kembali ke Super Admin
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right side: User Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Quick Return to Super Admin Button when viewing as another role */}
+          {isSuperAdminSession && currentUser.role !== 'admin' && (
+            <button
+              onClick={resetToAdmin}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+              title="Kembali ke Super Admin"
+            >
+              <Repeat className="w-3.5 h-3.5" />
+              Kembali ke Super Admin
+            </button>
+          )}
+
           {/* User Profile Mini Badge (Clickable to open profile & change password) */}
           <button
             onClick={() => {
@@ -84,7 +203,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             <Avatar name={currentUser.name || 'User'} size="sm" />
             <div className="hidden xl:block">
               <div className="text-xs font-bold text-gray-900 leading-tight truncate max-w-[130px]">{currentUser.name}</div>
-              <div className="text-[10px] text-gray-400 truncate max-w-[130px]">{currentUser.email}</div>
+              <div className="text-[10px] text-gray-400 truncate max-w-[130px]">
+                {currentUser.role.toUpperCase()}
+              </div>
             </div>
           </button>
 
