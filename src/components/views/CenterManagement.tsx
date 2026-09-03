@@ -322,7 +322,7 @@ export const CenterManagement: React.FC = () => {
                   </div>
                   <div className="p-2 bg-gray-50 rounded-lg">
                     <div className="text-xs font-extrabold text-gray-900">{c.activeClassesCount}</div>
-                    <div className="text-[10px] text-gray-500">Classes (Batches)</div>
+                    <div className="text-[10px] text-gray-500">Classes</div>
                   </div>
                 </div>
               </div>
@@ -338,7 +338,7 @@ export const CenterManagement: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedCenterId(c.id);
-                    switchRole('admin_center');
+                    switchRole('admin_center', c.id);
                   }}
                   className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-0.5 cursor-pointer"
                 >

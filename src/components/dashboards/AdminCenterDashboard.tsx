@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal } from '../ui';
 import { Classroom } from '../../types';
@@ -24,15 +24,33 @@ import {
 } from 'lucide-react';
 
 export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
-  const { currentUser, centers, classrooms, classes, users, addClassroom, updateClassroom, deleteClassroom, bookings, updateBooking } = useApp();
+  const { currentUser, centers, classrooms, classes, users, addClassroom, updateClassroom, deleteClassroom, bookings, updateBooking, selectedCenterId, setSelectedCenterId, isSuperAdminSession } = useApp();
   
-  // Assigned centers for this Center Admin
-  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
-    ? currentUser.centerIds 
-    : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
+  // Assigned centers for this Center Admin. If Super Admin session, all centers are accessible
+  const assignedCenterIds = isSuperAdminSession
+    ? centers.map(c => c.id)
+    : (currentUser.centerIds && currentUser.centerIds.length > 0 
+        ? currentUser.centerIds 
+        : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']));
   
-  const assignedCenters = centers.filter(c => assignedCenterIds.includes(c.id));
-  const [activeCenterId, setActiveCenterId] = useState<string>(assignedCenterIds[0] || 'ctr-kemayoran');
+  const assignedCenters = isSuperAdminSession 
+    ? centers 
+    : centers.filter(c => assignedCenterIds.includes(c.id));
+
+  // Determine initial active center (prefer selectedCenterId if valid and not 'all')
+  const defaultCenterId = (selectedCenterId && selectedCenterId !== 'all' && centers.some(c => c.id === selectedCenterId))
+    ? selectedCenterId
+    : (currentUser.centerId && currentUser.centerId !== 'all' ? currentUser.centerId : (assignedCenterIds[0] || 'ctr-kemayoran'));
+
+  const [activeCenterId, setActiveCenterId] = useState<string>(defaultCenterId);
+
+  // Keep in sync if selectedCenterId changes externally
+  useEffect(() => {
+    if (selectedCenterId && selectedCenterId !== 'all' && centers.some(c => c.id === selectedCenterId)) {
+      setActiveCenterId(selectedCenterId);
+    }
+  }, [selectedCenterId, centers]);
+
   const currentCenter = centers.find(c => c.id === activeCenterId) || assignedCenters[0] || centers[0];
   
   const centerClassrooms = classrooms.filter(r => r.centerId === currentCenter?.id);
@@ -123,7 +141,10 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
             {assignedCenters.length > 1 && (
               <select
                 value={activeCenterId}
-                onChange={(e) => setActiveCenterId(e.target.value)}
+                onChange={(e) => {
+                  setActiveCenterId(e.target.value);
+                  setSelectedCenterId(e.target.value);
+                }}
                 className="ml-2 px-2.5 py-1 bg-white/20 text-white border border-white/30 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer"
               >
                 {assignedCenters.map(c => (

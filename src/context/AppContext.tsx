@@ -18,7 +18,7 @@ interface AppContextType {
   setCurrentUser: (user: User) => void;
   originalAdminUser: User | null;
   isSuperAdminSession: boolean;
-  switchRole: (role: UserRole) => void;
+  switchRole: (role: UserRole, targetCenterId?: string) => void;
   resetToAdmin: () => void;
 
   // Authentication
@@ -320,7 +320,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Switch role is ONLY available if current session belongs to Super Admin
-  const switchRole = (role: UserRole) => {
+  const switchRole = (role: UserRole, targetCenterId?: string) => {
     if (!isSuperAdminSession) return;
 
     if (role === 'admin') {
@@ -333,10 +333,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setOriginalAdminUser(currentUser);
     }
 
-    const targetUser = users.find(u => u.role === role);
+    // If targetCenterId is provided, try to find a user for that center first, or clone/adapt
+    let targetUser = targetCenterId 
+      ? users.find(u => u.role === role && (u.centerId === targetCenterId || (u.centerIds && u.centerIds.includes(targetCenterId))))
+      : undefined;
+
+    if (!targetUser) {
+      targetUser = users.find(u => u.role === role);
+    }
+
     if (targetUser) {
-      setCurrentUser(targetUser);
-      setSelectedCenterId(targetUser.centerId || 'all');
+      const finalCenterId = targetCenterId || targetUser.centerId || 'all';
+      const centerObj = centers.find(c => c.id === finalCenterId);
+      
+      setCurrentUser({
+        ...targetUser,
+        centerId: finalCenterId,
+        centerIds: targetCenterId ? [targetCenterId] : (targetUser.centerIds && targetUser.centerIds.length > 0 ? targetUser.centerIds : [finalCenterId]),
+        centerName: centerObj?.name || targetUser.centerName
+      });
+      setSelectedCenterId(finalCenterId);
     }
   };
 

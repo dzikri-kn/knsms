@@ -110,19 +110,15 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                     onClick={() => setIsRoleDropdownOpen(false)}
                   />
                   <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 py-2 divide-y divide-gray-100 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3 py-2 bg-gray-50/70">
-                      <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                      </div>
-                    </div>
 
                     <div className="p-1 space-y-0.5">
                       {[
-                        { role: 'admin', label: 'Super Admin (Default)', desc: 'Full access nationwide' },
-                        { role: 'admin_center', label: 'Admin Center', desc: 'Manage center & staff' },
-                        { role: 'student_advisor', label: 'Student Advisor', desc: 'CRM & leads tracking' },
-                        { role: 'teacher', label: 'Teacher', desc: 'Attendance & grading' },
-                        { role: 'parent', label: 'Parent', desc: 'Children progress' },
-                        { role: 'student', label: 'Student', desc: 'Learning & portfolio' },
+                        { role: 'admin', label: 'Super Admin (Default)' },
+                        { role: 'admin_center', label: 'Admin Center' },
+                        { role: 'student_advisor', label: 'Student Advisor' },
+                        { role: 'teacher', label: 'Teacher' },
+                        { role: 'parent', label: 'Parent' },
+                        { role: 'student', label: 'Student' },
                       ].map((item) => {
                         const isCurrent = currentUser.role === item.role;
                         return (
