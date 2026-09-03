@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const ScheduleTimetable: React.FC = () => {
-  const { currentUser, classes, centers, classrooms, selectedCenterId, setSelectedCenterId, addClass } = useApp();
+  const { currentUser, classes, users = [], centers, classrooms, selectedCenterId, setSelectedCenterId, addClass } = useApp();
 
   const isAdminCenter = currentUser.role === 'admin_center';
   const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
