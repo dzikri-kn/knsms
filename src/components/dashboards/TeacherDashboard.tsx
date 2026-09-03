@@ -249,7 +249,7 @@ export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
                 </Button>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       </Card>
 
