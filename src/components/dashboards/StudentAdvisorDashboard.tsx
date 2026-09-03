@@ -32,6 +32,13 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
   const advisorClassrooms = classrooms.filter(r => assignedCenterIds.includes(r.centerId));
   const advisorBookings = bookings.filter(b => assignedCenterIds.includes(b.centerId) || b.advisorId === currentUser.id);
   const advisorStudents = users.filter(u => u.role === 'student' && u.centerId && assignedCenterIds.includes(u.centerId));
+  const advisorParents = users.filter(u => {
+    if (u.role !== 'parent') return false;
+    const hasDirect = u.centerId && assignedCenterIds.includes(u.centerId);
+    const hasMulti = u.centerIds && u.centerIds.some(cid => assignedCenterIds.includes(cid));
+    const hasChild = u.childrenIds && users.some(s => u.childrenIds?.includes(s.id) && s.centerId && assignedCenterIds.includes(s.centerId));
+    return hasDirect || hasMulti || hasChild || (currentUser.handledParentIds && currentUser.handledParentIds.includes(u.id));
+  });
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
@@ -222,8 +229,17 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
             <span className="text-xs font-semibold text-gray-500 uppercase">Managed Students</span>
             <Users className="w-5 h-5 text-purple-500" />
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{advisorStudents.length} Students</div>
+          <div className="mt-2 text-2xl font-extrabold text-gray-900">{advisorStudents.length} Murid</div>
           <p className="text-xs text-gray-500 mt-1">Assigned Center Cohorts</p>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-500 uppercase">Managed Parents</span>
+            <Users className="w-5 h-5 text-blue-500" />
+          </div>
+          <div className="mt-2 text-2xl font-extrabold text-gray-900">{advisorParents.length} Orang Tua</div>
+          <p className="text-xs text-blue-600 font-semibold mt-1">Akun Parent Aktif</p>
         </Card>
 
         <Card className="border-l-4 border-l-emerald-500">
@@ -232,23 +248,14 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
             <Calendar className="w-5 h-5 text-emerald-500" />
           </div>
           <div className="mt-2 text-2xl font-extrabold text-gray-900">
-            {advisorBookings.filter(b => b.bookingType === 'Trial').length} Sessions
+            {advisorBookings.filter(b => b.bookingType === 'Trial').length} Sesi
           </div>
           <p className="text-xs text-success-600 font-semibold mt-1">↗ Confirmed Attendees</p>
         </Card>
 
-        <Card className="border-l-4 border-l-indigo-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Conversion Rate</span>
-            <TrendingUp className="w-5 h-5 text-indigo-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">74.5%</div>
-          <p className="text-xs text-gray-500 mt-1">Trial to Regular Enrollment</p>
-        </Card>
-
         <Card className="border-l-4 border-l-amber-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Catchup Scheduled</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase">Total Trial Bookings</span>
             <Clock className="w-5 h-5 text-amber-500" />
           </div>
           <div className="mt-2 text-2xl font-extrabold text-gray-900">{advisorBookings.length} Bookings</div>

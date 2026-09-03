@@ -25,6 +25,7 @@ export const UserManagement: React.FC = () => {
   const { currentUser, users, classes = [], addUser, updateUser, deleteUser, changePassword, centers, modules } = useApp();
 
   const isAdminCenter = currentUser.role === 'admin_center';
+  const isStudentAdvisor = currentUser.role === 'student_advisor';
 
   const [activeRoleFilter, setActiveRoleFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -101,16 +102,21 @@ export const UserManagement: React.FC = () => {
       }
     }
 
-    // 3. Student Advisor can ONLY see students, leads, and parents in their assigned center(s) or handled list
+    // 3. Student Advisor can ONLY see parent and student accounts
     if (currentUser.role === 'student_advisor') {
-      if (u.id === currentUser.id) return true;
-      if (u.role === 'admin' || u.role === 'admin_center') return false;
+      if (u.id === currentUser.id) return true; // Can see self
+      if (u.role !== 'parent' && u.role !== 'student') return false; // STRICT: only parent and student
 
       const isHandledParent = u.role === 'parent' && currentUser.handledParentIds?.includes(u.id);
       const hasDirectCenter = u.centerId && assignedCenterIds.includes(u.centerId);
       const hasMultiCenter = u.centerIds && u.centerIds.some(cid => assignedCenterIds.includes(cid));
+      let hasChildInCenter = false;
+      if (u.role === 'parent' && u.childrenIds && u.childrenIds.length > 0) {
+        const studentChildren = users.filter(s => u.childrenIds?.includes(s.id));
+        hasChildInCenter = studentChildren.some(s => s.centerId && assignedCenterIds.includes(s.centerId));
+      }
 
-      if (!hasDirectCenter && !hasMultiCenter && !isHandledParent) {
+      if (!hasDirectCenter && !hasMultiCenter && !isHandledParent && !hasChildInCenter) {
         return false;
       }
     }
@@ -328,7 +334,11 @@ export const UserManagement: React.FC = () => {
 
       {/* Role Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-gray-200">
-        {[
+        {(isStudentAdvisor ? [
+          { id: 'all', label: 'All (Parents & Students)' },
+          { id: 'parent', label: 'Parents' },
+          { id: 'student', label: 'Students' },
+        ] : [
           { id: 'all', label: 'All Users' },
           ...(isAdminCenter ? [] : [{ id: 'admin', label: 'Super Admin' }]),
           ...(isAdminCenter ? [] : [{ id: 'admin_center', label: 'Admin Center' }]),
@@ -336,7 +346,7 @@ export const UserManagement: React.FC = () => {
           { id: 'teacher', label: 'Teachers' },
           { id: 'parent', label: 'Parents' },
           { id: 'student', label: 'Students' },
-        ].map((tab) => (
+        ]).map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveRoleFilter(tab.id)}
@@ -539,12 +549,21 @@ export const UserManagement: React.FC = () => {
                 onChange={(e) => setRole(e.target.value as UserRole)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none font-medium"
               >
-                {!isAdminCenter && <option value="admin">Super Admin</option>}
-                {!isAdminCenter && <option value="admin_center">Admin Center</option>}
-                <option value="student_advisor">Student Advisor</option>
-                <option value="teacher">Teacher</option>
-                <option value="parent">Parent</option>
-                <option value="student">Student</option>
+                {isStudentAdvisor ? (
+                  <>
+                    <option value="student">Student</option>
+                    <option value="parent">Parent</option>
+                  </>
+                ) : (
+                  <>
+                    {!isAdminCenter && <option value="admin">Super Admin</option>}
+                    {!isAdminCenter && <option value="admin_center">Admin Center</option>}
+                    <option value="student_advisor">Student Advisor</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="parent">Parent</option>
+                    <option value="student">Student</option>
+                  </>
+                )}
               </select>
             </div>
 
