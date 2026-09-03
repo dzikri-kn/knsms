@@ -115,10 +115,6 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
       <div className="bg-gradient-to-r from-primary-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg shadow-primary-500/15 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="primary" className="bg-white/20 text-white border-white/30 text-xs">
-              Super Admin View
-            </Badge>
-            <span className="text-xs text-primary-100">National Management Portal</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Welcome to Koding Next School Portal</h1>
         </div>

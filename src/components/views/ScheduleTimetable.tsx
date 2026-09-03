@@ -20,7 +20,10 @@ import {
   MapPin,
   Building2,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Search,
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 export const ScheduleTimetable: React.FC = () => {
@@ -32,7 +35,9 @@ export const ScheduleTimetable: React.FC = () => {
     : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
 
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'month'>('week');
-  const [selectedCenterFilter, setSelectedCenterFilter] = useState<string>(isAdminCenter ? assignedCenterIds[0] : 'all');
+  const [selectedCenterIds, setSelectedCenterIds] = useState<string[]>([]);
+  const [isCenterDropdownOpen, setIsCenterDropdownOpen] = useState(false);
+  const [searchCenterQuery, setSearchCenterQuery] = useState('');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
@@ -44,10 +49,32 @@ export const ScheduleTimetable: React.FC = () => {
     ? centers.filter(c => assignedCenterIds.includes(c.id))
     : centers;
 
-  // Available rooms based on selected center filter
-  const availableRooms = selectedCenterFilter === 'all'
+  const filteredCenterOptions = availableCenters.filter(c =>
+    c.name.toLowerCase().includes(searchCenterQuery.toLowerCase()) ||
+    c.city.toLowerCase().includes(searchCenterQuery.toLowerCase())
+  );
+
+  const handleToggleCenter = (cId: string) => {
+    setSelectedCenterIds(prev =>
+      prev.includes(cId) ? prev.filter(id => id !== cId) : [...prev, cId]
+    );
+    setSelectedRoomFilter('all');
+  };
+
+  const handleSelectAllCenters = () => {
+    setSelectedCenterIds(availableCenters.map(c => c.id));
+    setSelectedRoomFilter('all');
+  };
+
+  const handleClearCenters = () => {
+    setSelectedCenterIds([]);
+    setSelectedRoomFilter('all');
+  };
+
+  // Available rooms based on selected centers
+  const availableRooms = selectedCenterIds.length === 0
     ? (isAdminCenter ? classrooms.filter(r => assignedCenterIds.includes(r.centerId)) : classrooms)
-    : classrooms.filter(r => r.centerId === selectedCenterFilter || r.centerName === selectedCenterFilter || selectedCenterFilter === 'ctr-online');
+    : classrooms.filter(r => selectedCenterIds.includes(r.centerId) || (selectedCenterIds.includes('ctr-online') && r.centerName === 'Online'));
 
   // Week configuration (Google Calendar style: Mon - Sun)
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -101,7 +128,12 @@ export const ScheduleTimetable: React.FC = () => {
       if (!(cls.studentIds || []).includes(currentUser.id)) return false;
     }
 
-    const matchesCenter = selectedCenterFilter === 'all' || cls.centerId === selectedCenterFilter || cls.centerName === selectedCenterFilter;
+    const matchesCenter = selectedCenterIds.length === 0 || 
+      selectedCenterIds.includes(cls.centerId) || 
+      selectedCenterIds.some(cid => {
+        const found = centers.find(c => c.id === cid);
+        return found && found.name === cls.centerName;
+      });
     const matchesRoom = selectedRoomFilter === 'all' || cls.roomId === selectedRoomFilter || cls.roomName === selectedRoomFilter;
     const matchesType = selectedTypeFilter === 'all' || cls.type === selectedTypeFilter;
     return matchesCenter && matchesRoom && matchesType;
@@ -259,22 +291,117 @@ export const ScheduleTimetable: React.FC = () => {
 
         {/* Right Side: Filters, View Toggle & Action */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Center Selector */}
-          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-            <MapPin className="w-3.5 h-3.5 text-gray-500" />
-            <select
-              value={selectedCenterFilter}
-              onChange={(e) => {
-                setSelectedCenterFilter(e.target.value);
-                setSelectedRoomFilter('all');
-              }}
-              className="bg-transparent text-xs font-medium text-gray-700 focus:outline-none max-w-[160px] truncate"
+          {/* Multi-Center Selector Popover */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsCenterDropdownOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                selectedCenterIds.length > 0
+                  ? 'bg-blue-50/90 border-blue-300 text-brand-blue shadow-xs'
+                  : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+              }`}
             >
-              <option value="all">All Centers ({centers.length})</option>
-              {centers.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+              <MapPin className="w-3.5 h-3.5 text-gray-500" />
+              <span className="truncate max-w-[150px]">
+                {selectedCenterIds.length === 0
+                  ? `All Centers (${availableCenters.length})`
+                  : selectedCenterIds.length === 1
+                    ? (availableCenters.find(c => c.id === selectedCenterIds[0])?.name.replace('Koding Next - ', '') || '1 Center')
+                    : `${selectedCenterIds.length} Centers`}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isCenterDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isCenterDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsCenterDropdownOpen(false)}
+                />
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                      Filter Cabang / Center
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllCenters}
+                        className="text-[11px] font-semibold text-primary-600 hover:underline cursor-pointer"
+                      >
+                        Pilih Semua
+                      </button>
+                      <span className="text-gray-300">•</span>
+                      <button
+                        type="button"
+                        onClick={handleClearCenters}
+                        className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search inside filter */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchCenterQuery}
+                      onChange={(e) => setSearchCenterQuery(e.target.value)}
+                      placeholder="Cari cabang atau kota..."
+                      className="w-full pl-8 pr-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  {/* Checkbox List */}
+                  <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 pr-1 space-y-0.5">
+                    {filteredCenterOptions.map((c) => {
+                      const isChecked = selectedCenterIds.includes(c.id);
+                      return (
+                        <label
+                          key={c.id}
+                          className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors text-xs ${
+                            isChecked ? 'bg-primary-50/80 font-bold text-primary-900' : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleCenter(c.id)}
+                            className="w-3.5 h-3.5 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate">{c.name}</div>
+                            <div className="text-[10px] text-gray-400 font-normal truncate">{c.city}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                    {filteredCenterOptions.length === 0 && (
+                      <div className="py-3 text-center text-xs text-gray-400">
+                        Tidak ada cabang ditemukan
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedCenterIds.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                      <span className="text-gray-500">{selectedCenterIds.length} cabang dipilih</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsCenterDropdownOpen(false)}
+                        className="px-2.5 py-1 bg-primary-600 text-white font-bold rounded-lg hover:bg-primary-700 cursor-pointer"
+                      >
+                        Terapkan
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Room Filter */}

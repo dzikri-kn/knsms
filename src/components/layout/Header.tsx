@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Avatar, Button, Modal, Badge } from '../ui';
 import { UserRole } from '../../types';
-import { 
+import {
   Menu,
   LogOut,
   KeyRound,
@@ -22,14 +22,14 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
-  const { 
-    currentUser, 
-    logout, 
-    changePassword, 
-    isSuperAdminSession, 
-    originalAdminUser, 
-    switchRole, 
-    resetToAdmin 
+  const {
+    currentUser,
+    logout,
+    changePassword,
+    isSuperAdminSession,
+    originalAdminUser,
+    switchRole,
+    resetToAdmin
   } = useApp();
 
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -88,11 +88,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             <div className="relative">
               <button
                 onClick={() => setIsRoleDropdownOpen(prev => !prev)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                  currentUser.role === 'admin'
-                    ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/80'
-                    : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 ring-2 ring-amber-400/30'
-                }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer ${currentUser.role === 'admin'
+                  ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/80'
+                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 ring-2 ring-amber-400/30'
+                  }`}
                 title="Super Admin Role Switcher"
               >
                 <Repeat className="w-3.5 h-3.5" />
@@ -106,19 +105,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
               {/* Role Dropdown Menu */}
               {isRoleDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
+                  <div
+                    className="fixed inset-0 z-40"
                     onClick={() => setIsRoleDropdownOpen(false)}
                   />
                   <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 py-2 divide-y divide-gray-100 animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-3 py-2 bg-gray-50/70">
                       <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                        Super Admin Switch View
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        Lihat sistem dari perspektif role manapun.
-                      </p>
                     </div>
 
                     <div className="p-1 space-y-0.5">
@@ -138,11 +132,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                               switchRole(item.role as UserRole);
                               setIsRoleDropdownOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                              isCurrent 
-                                ? 'bg-purple-50 text-purple-700 font-bold' 
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isCurrent
+                              ? 'bg-purple-50 text-purple-700 font-bold'
+                              : 'text-gray-700 hover:bg-gray-100'
+                              }`}
                           >
                             <div>
                               <div className="text-xs font-semibold">{item.label}</div>
@@ -262,11 +255,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             </p>
 
             {passwordMsg && (
-              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                passwordMsg.type === 'success' 
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                  : 'bg-rose-50 text-rose-800 border border-rose-200'
-              }`}>
+              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${passwordMsg.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}>
                 {passwordMsg.type === 'success' ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 ) : (
