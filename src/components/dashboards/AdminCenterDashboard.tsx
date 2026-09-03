@@ -135,11 +135,8 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
             )}
           </div>
           <h1 className="text-2xl font-bold tracking-tight">{currentCenter?.name}</h1>
-          <p className="text-slate-300 text-sm mt-1 flex items-center gap-3 flex-wrap">
-            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {currentCenter?.address}, {currentCenter?.city}</span>
-            {currentCenter?.phone && (
-              <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {currentCenter?.phone}</span>
-            )}
+          <p className="text-slate-300 text-sm mt-1 flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5" /> {currentCenter?.city}, {currentCenter?.province}
           </p>
         </div>
         <div className="flex gap-2">

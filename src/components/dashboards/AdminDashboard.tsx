@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge } from '../ui';
-import { 
-  Users, 
-  BookOpen, 
-  Building2, 
-  TrendingUp, 
-  GraduationCap, 
-  Calendar, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Users,
+  BookOpen,
+  Building2,
+  TrendingUp,
+  GraduationCap,
+  Calendar,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
   MapPin,
   Sparkles,
   Search,
@@ -19,15 +19,15 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  BarChart, 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
   Bar,
   LabelList
 } from 'recharts';
@@ -72,23 +72,23 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
   };
 
   // Filtered dataset calculation based on multi-select
-  const filteredCenters = centers.filter(c => 
-    c.name.toLowerCase().includes(searchCenterQuery.toLowerCase()) || 
+  const filteredCenters = centers.filter(c =>
+    c.name.toLowerCase().includes(searchCenterQuery.toLowerCase()) ||
     c.city.toLowerCase().includes(searchCenterQuery.toLowerCase())
   );
 
   const activeStudentsCount = users.filter(u => {
     if (u.role !== 'student') return false;
     if (selectedCenterIds.length === 0) return true;
-    return (u.centerId && selectedCenterIds.includes(u.centerId)) || 
-           (u.centerIds && u.centerIds.some(id => selectedCenterIds.includes(id)));
+    return (u.centerId && selectedCenterIds.includes(u.centerId)) ||
+      (u.centerIds && u.centerIds.some(id => selectedCenterIds.includes(id)));
   }).length;
 
   const activeTeachersCount = users.filter(u => {
     if (u.role !== 'teacher') return false;
     if (selectedCenterIds.length === 0) return true;
-    return (u.centerId && selectedCenterIds.includes(u.centerId)) || 
-           (u.centerIds && u.centerIds.some(id => selectedCenterIds.includes(id)));
+    return (u.centerId && selectedCenterIds.includes(u.centerId)) ||
+      (u.centerIds && u.centerIds.some(id => selectedCenterIds.includes(id)));
   }).length;
 
   const activeClassesCount = classes.filter(c => {
@@ -121,23 +121,20 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
             <span className="text-xs text-primary-100">National Management Portal</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Welcome to Koding Next School Portal</h1>
-          <p className="text-primary-100 text-sm mt-1 max-w-xl">
-            Monitor real-time performance across 35 Koding Next Indonesia centers, course scheduling, live attendance tracking, and curriculum in one unified system.
-          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             icon={<Plus className="w-4 h-4" />}
             onClick={() => onNavigate('classes')}
             className="bg-white text-primary-700 hover:bg-primary-50 font-bold border-none"
           >
             Create New Class
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             icon={<Users className="w-4 h-4" />}
             onClick={() => onNavigate('users')}
             className="border-white/40 text-white hover:bg-white/10"
@@ -237,9 +234,8 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
                         return (
                           <label
                             key={c.id}
-                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
-                              isChecked ? 'bg-blue-50/80 font-bold text-brand-blue' : 'hover:bg-gray-50 text-gray-700'
-                            }`}
+                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors text-xs ${isChecked ? 'bg-blue-50/80 font-bold text-brand-blue' : 'hover:bg-gray-50 text-gray-700'
+                              }`}
                           >
                             <input
                               type="checkbox"
@@ -401,14 +397,14 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
               <AreaChart data={attendanceTrendData}>
                 <defs>
                   <linearGradient id="colorHadir" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#007AFF" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#007AFF" stopOpacity={0.0}/>
+                    <stop offset="5%" stopColor="#007AFF" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#007AFF" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="day" stroke="#9CA3AF" fontSize={12} />
                 <YAxis domain={[80, 100]} stroke="#9CA3AF" fontSize={12} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1E293B', borderRadius: '8px', color: '#fff', border: 'none' }}
                 />
                 <Area type="monotone" dataKey="present" stroke="#007AFF" strokeWidth={3} fillOpacity={1} fill="url(#colorHadir)" name="Attendance Rate (%)" />
@@ -464,16 +460,16 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
               <BarChart data={currentCentersData} layout="vertical" margin={{ top: 5, right: 35, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
                 <XAxis type="number" stroke="#9CA3AF" fontSize={11} domain={[0, 'dataMax + 40']} />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  stroke="#334155" 
-                  fontSize={11} 
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  stroke="#334155"
+                  fontSize={11}
                   fontWeight={600}
                   width={140}
                   tickFormatter={(val) => val.length > 17 ? `${val.substring(0, 17)}...` : val}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#0F172A', borderRadius: '10px', color: '#fff', border: 'none', fontSize: '12px' }}
                   formatter={(value: any, name: any, item: any) => [
                     `${value} Active Students (${item.payload.classes} Batches)`,
@@ -482,11 +478,11 @@ export const AdminDashboard: React.FC<{ onNavigate: (tab: string) => void }> = (
                   labelFormatter={() => ''}
                 />
                 <Bar dataKey="students" fill="#4F46E5" radius={[0, 6, 6, 0]} name="Total Students">
-                  <LabelList 
-                    dataKey="students" 
-                    position="right" 
-                    fill="#1E293B" 
-                    fontSize={11} 
+                  <LabelList
+                    dataKey="students"
+                    position="right"
+                    fill="#1E293B"
+                    fontSize={11}
                     fontWeight={700}
                     formatter={(val: any) => `${val}`}
                   />

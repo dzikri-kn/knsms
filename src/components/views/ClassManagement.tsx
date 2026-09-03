@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal, ConfirmDialog, Avatar } from '../ui';
 import { ClassItem, ClassType } from '../../types';
-import { 
-  BookOpen, 
-  Search, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  DoorClosed, 
-  Trash2, 
-  Edit, 
-  Video, 
-  Users, 
+import {
+  BookOpen,
+  Search,
+  Plus,
+  Calendar,
+  Clock,
+  DoorClosed,
+  Trash2,
+  Edit,
+  Video,
+  Users,
   ExternalLink,
   Layers,
   Building2,
@@ -25,8 +25,8 @@ export const ClassManagement: React.FC = () => {
   const { currentUser, classes, addClass, updateClass, deleteClass, modules, classrooms, users, centers } = useApp();
 
   const isAdminCenter = currentUser.role === 'admin_center';
-  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
-    ? currentUser.centerIds 
+  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0
+    ? currentUser.centerIds
     : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
 
   const [filterType, setFilterType] = useState<string>('all');
@@ -75,7 +75,7 @@ export const ClassManagement: React.FC = () => {
   // Selected Teacher specialization modules (if any)
   const currentTeacher = users.find(u => u.id === teacherId);
   const teacherSpecializations = currentTeacher?.specialization ? currentTeacher.specialization.split(',').map(s => s.trim()) : [];
-  
+
   // Available Modules tailored to teacher/center
   const availableModules = teacherSpecializations.length > 0
     ? modules.filter(m => teacherSpecializations.some(spec => m.title.includes(spec) || spec.includes(m.title)))
@@ -130,15 +130,15 @@ export const ClassManagement: React.FC = () => {
     const matchesType = filterType === 'all' || c.type === filterType;
     const matchesCenter = filterCenterId === 'all' || c.centerId === filterCenterId;
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.centerName.toLowerCase().includes(searchTerm.toLowerCase());
+      c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.centerName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesType && matchesCenter && matchesSearch;
   });
 
   const handleCenterChange = (newCenterId: string) => {
     setCenterId(newCenterId);
-    
+
     // Auto cascade available rooms for this center
     const roomsForCenter = classrooms.filter(r => r.centerId === newCenterId || newCenterId === 'ctr-online');
     if (roomsForCenter.length > 0) {
@@ -146,8 +146,8 @@ export const ClassManagement: React.FC = () => {
     }
 
     // Auto cascade available teachers for this center
-    const teachersForCenter = users.filter(u => 
-      u.role === 'teacher' && 
+    const teachersForCenter = users.filter(u =>
+      u.role === 'teacher' &&
       (newCenterId === 'ctr-online' || u.centerId === newCenterId || (u.centerIds && u.centerIds.includes(newCenterId)))
     );
     if (teachersForCenter.length > 0) {
@@ -193,8 +193,8 @@ export const ClassManagement: React.FC = () => {
     setClassType('Regular');
     setModuleId(firstModule?.id || 'mod-jk-12');
 
-    const teachersForCenter = users.filter(u => 
-      u.role === 'teacher' && 
+    const teachersForCenter = users.filter(u =>
+      u.role === 'teacher' &&
       (initialCenter === 'ctr-online' || u.centerId === initialCenter || (u.centerIds && u.centerIds.includes(initialCenter)))
     );
     const initialTeacher = teachersForCenter[0] || users.find(u => u.role === 'teacher');
@@ -247,7 +247,7 @@ export const ClassManagement: React.FC = () => {
     const otherClasses = classes.filter(c => editingClass ? c.id !== editingClass.id : true);
 
     // 1. Teacher Conflict Check (A teacher cannot be in two classes at the same time, even across different centers)
-    const teacherConflict = otherClasses.find(c => 
+    const teacherConflict = otherClasses.find(c =>
       (c.teacherId === selTeacher.id || c.teacherName === selTeacher.name) &&
       c.dayOfWeek === dayOfWeek &&
       isTimeOverlapping(c.startTime, c.endTime, startTime, endTime)
@@ -262,7 +262,7 @@ export const ClassManagement: React.FC = () => {
 
     // 2. Room Conflict Check (Physical room cannot be used by two classes at the same time in the same center)
     if (selCenter.id !== 'ctr-online' && selCenter.name !== 'Online') {
-      const roomConflict = otherClasses.find(c => 
+      const roomConflict = otherClasses.find(c =>
         (c.centerId === selCenter.id) &&
         (c.roomId === selRoom.id || c.roomName === selRoom.name) &&
         c.dayOfWeek === dayOfWeek &&
@@ -333,8 +333,7 @@ export const ClassManagement: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Class & Batch Management</h1>
-          <p className="text-sm text-gray-500">Manage Regular, Catchup, Make-up, Consult, and Free Trial class schedules</p>
+          <h1 className="text-2xl font-bold text-gray-900">Class Management</h1>
         </div>
         <Button onClick={handleOpenCreate} icon={<Plus className="w-4 h-4" />}>
           Create New Class
@@ -345,20 +344,19 @@ export const ClassManagement: React.FC = () => {
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-gray-200">
         {[
           { id: 'all', label: 'All Class Types' },
-          { id: 'Regular', label: 'Regular Batch' },
-          { id: 'Trial', label: 'Free Trial Coding' },
-          { id: 'Catchup', label: 'Catchup Lesson' },
-          { id: 'Make-up', label: 'Make-up Session' },
+          { id: 'Regular', label: 'Regular Class' },
+          { id: 'Trial', label: 'Trial Class' },
+          { id: 'Catchup', label: 'Catchup Class' },
+          { id: 'Make-up', label: 'Make-up Class' },
           { id: 'Consult', label: 'Consultation' },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setFilterType(tab.id)}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors shrink-0 ${
-              filterType === tab.id
-                ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors shrink-0 ${filterType === tab.id
+              ? 'bg-primary-50 text-primary-700 border border-primary-200'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
           >
             {tab.label}
           </button>
@@ -401,106 +399,105 @@ export const ClassManagement: React.FC = () => {
         {filteredClasses.map((cls) => {
           // Check if this class has any conflict with other classes
           const otherClasses = classes.filter(c => c.id !== cls.id);
-          const hasConflict = otherClasses.some(c => 
+          const hasConflict = otherClasses.some(c =>
             c.dayOfWeek === cls.dayOfWeek &&
             isTimeOverlapping(c.startTime, c.endTime, cls.startTime, cls.endTime) &&
             ((c.teacherId === cls.teacherId || c.teacherName === cls.teacherName) ||
-             (cls.centerId !== 'ctr-online' && c.centerId === cls.centerId && (c.roomId === cls.roomId || c.roomName === cls.roomName)))
+              (cls.centerId !== 'ctr-online' && c.centerId === cls.centerId && (c.roomId === cls.roomId || c.roomName === cls.roomName)))
           );
 
           return (
-          <Card key={cls.id} className={`flex flex-col justify-between hover:shadow-md transition-shadow relative ${
-            hasConflict ? 'border-2 border-rose-400 bg-rose-50/20' : ''
-          }`}>
-            <div>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge
-                    variant={
-                      cls.type === 'Regular' ? 'primary' :
-                      cls.type === 'Trial' ? 'warning' :
-                      cls.type === 'Make-up' ? 'purple' : 'success'
-                    }
-                    size="sm"
-                  >
-                    {cls.type}
-                  </Badge>
-                  {hasConflict && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-300 animate-pulse">
-                      <AlertTriangle className="w-3 h-3" /> Jadwal Bertabrakan
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handleOpenEdit(cls)} aria-label="Edit Class" className="p-1 text-gray-400 hover:text-primary-600 rounded cursor-pointer">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setClassToDelete(cls)} aria-label="Delete Class" className="p-1 text-gray-400 hover:text-danger-600 rounded cursor-pointer">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <h2 className="text-base font-bold text-gray-900 mt-2.5">{cls.name}</h2>
-              <div className="text-xs text-gray-400 font-mono">{cls.code}</div>
-
-              {/* Details */}
-              <div className="mt-4 space-y-2 text-xs text-gray-600">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-gray-400" /> Center:</span>
-                  <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md text-[11px] border border-primary-100">
-                    {cls.centerName || 'Online'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-400" /> Schedule:</span>
-                  <span className="font-bold text-gray-900">{cls.dayOfWeek}, {cls.startTime} - {cls.endTime}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><DoorClosed className="w-3.5 h-3.5 text-gray-400" /> Room:</span>
-                  <span className="font-medium text-gray-800">{cls.roomName}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-gray-400" /> Instructor:</span>
-                  <span className="font-medium text-gray-800">{cls.teacherName}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom: Capacity Bar & Zoom (Online Only) */}
-            <div className="mt-5 pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-gray-500">Occupancy:</span>
-                <span className="font-bold text-gray-900">{cls.enrolledStudentsCount} / {cls.capacity} Students</span>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div 
-                  className="bg-primary-500 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (cls.enrolledStudentsCount / cls.capacity) * 100)}%` }}
-                />
-              </div>
-
-              {/* Zoom Button only for Online Center */}
-              {(cls.centerName === 'Online' || cls.centerId === 'ctr-online') && cls.zoomLink ? (
-                <div className="mt-3">
-                  <a
-                    href={cls.zoomLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors border border-blue-200"
-                  >
-                    <Video className="w-3.5 h-3.5" /> Open Class Zoom ↗
-                  </a>
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <div className="w-full py-1.5 bg-gray-50 text-gray-500 font-medium rounded-lg text-[11px] flex items-center justify-center gap-1.5 border border-gray-100">
-                    <Building2 className="w-3.5 h-3.5" /> On-site Offline Session ({cls.roomName})
+            <Card key={cls.id} className={`flex flex-col justify-between hover:shadow-md transition-shadow relative ${hasConflict ? 'border-2 border-rose-400 bg-rose-50/20' : ''
+              }`}>
+              <div>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge
+                      variant={
+                        cls.type === 'Regular' ? 'primary' :
+                          cls.type === 'Trial' ? 'warning' :
+                            cls.type === 'Make-up' ? 'purple' : 'success'
+                      }
+                      size="sm"
+                    >
+                      {cls.type}
+                    </Badge>
+                    {hasConflict && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-300 animate-pulse">
+                        <AlertTriangle className="w-3 h-3" /> Jadwal Bertabrakan
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleOpenEdit(cls)} aria-label="Edit Class" className="p-1 text-gray-400 hover:text-primary-600 rounded cursor-pointer">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setClassToDelete(cls)} aria-label="Delete Class" className="p-1 text-gray-400 hover:text-danger-600 rounded cursor-pointer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          </Card>
+
+                <h2 className="text-base font-bold text-gray-900 mt-2.5">{cls.name}</h2>
+                <div className="text-xs text-gray-400 font-mono">{cls.code}</div>
+
+                {/* Details */}
+                <div className="mt-4 space-y-2 text-xs text-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-gray-400" /> Center:</span>
+                    <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md text-[11px] border border-primary-100">
+                      {cls.centerName || 'Online'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-400" /> Schedule:</span>
+                    <span className="font-bold text-gray-900">{cls.dayOfWeek}, {cls.startTime} - {cls.endTime}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><DoorClosed className="w-3.5 h-3.5 text-gray-400" /> Room:</span>
+                    <span className="font-medium text-gray-800">{cls.roomName}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-gray-400" /> Instructor:</span>
+                    <span className="font-medium text-gray-800">{cls.teacherName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom: Capacity Bar & Zoom (Online Only) */}
+              <div className="mt-5 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-gray-500">Occupancy:</span>
+                  <span className="font-bold text-gray-900">{cls.enrolledStudentsCount} / {cls.capacity} Students</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-primary-500 h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (cls.enrolledStudentsCount / cls.capacity) * 100)}%` }}
+                  />
+                </div>
+
+                {/* Zoom Button only for Online Center */}
+                {(cls.centerName === 'Online' || cls.centerId === 'ctr-online') && cls.zoomLink ? (
+                  <div className="mt-3">
+                    <a
+                      href={cls.zoomLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors border border-blue-200"
+                    >
+                      <Video className="w-3.5 h-3.5" /> Open Class Zoom ↗
+                    </a>
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <div className="w-full py-1.5 bg-gray-50 text-gray-500 font-medium rounded-lg text-[11px] flex items-center justify-center gap-1.5 border border-gray-100">
+                      <Building2 className="w-3.5 h-3.5" /> On-site Offline Session ({cls.roomName})
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
           );
         })}
       </div>
@@ -636,11 +633,10 @@ export const ClassManagement: React.FC = () => {
                   return (
                     <label
                       key={st.id}
-                      className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors text-xs ${
-                        isChecked 
-                          ? 'bg-primary-50/90 border border-primary-300' 
-                          : (isMaxed ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : 'hover:bg-gray-100')
-                      }`}
+                      className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors text-xs ${isChecked
+                        ? 'bg-primary-50/90 border border-primary-300'
+                        : (isMaxed ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : 'hover:bg-gray-100')
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -670,13 +666,13 @@ export const ClassManagement: React.FC = () => {
                   const student = activeStudents.find(s => s.id === sId) || users.find(u => u.id === sId);
                   if (!student) return null;
                   return (
-                    <span 
-                      key={sId} 
+                    <span
+                      key={sId}
                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-800 border border-primary-200 rounded-md text-[10px] font-semibold"
                     >
                       {student.name}
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => handleToggleStudent(sId)}
                         className="text-primary-500 hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
                       >

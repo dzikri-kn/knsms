@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal, ConfirmDialog } from '../ui';
 import { Center, Classroom } from '../../types';
-import { 
-  Building2, 
-  Search, 
-  MapPin, 
-  Users, 
-  BookOpen, 
-  DoorClosed, 
-  Phone, 
-  Mail, 
+import {
+  Building2,
+  Search,
+  MapPin,
+  Users,
+  BookOpen,
+  DoorClosed,
+  Phone,
+  Mail,
   ExternalLink,
   ChevronRight,
   Plus,
@@ -25,15 +25,15 @@ import {
 export const CenterManagement: React.FC = () => {
   const { currentUser, centers, classrooms, setSelectedCenterId, switchRole, addCenter, updateCenter, deleteCenter, addClassroom, updateClassroom, deleteClassroom } = useApp();
 
-  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
-    ? currentUser.centerIds 
+  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0
+    ? currentUser.centerIds
     : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
 
   const isSuperAdmin = currentUser.role === 'admin';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
-  
+
   // Center Modal States
   const [isCenterModalOpen, setIsCenterModalOpen] = useState(false);
   const [editingCenter, setEditingCenter] = useState<Center | null>(null);
@@ -70,8 +70,8 @@ export const CenterManagement: React.FC = () => {
     }
     const matchesProvince = selectedProvince === 'all' || c.province === selectedProvince;
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.code.toLowerCase().includes(searchTerm.toLowerCase());
+      c.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.code.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesProvince && matchesSearch;
   });
 
@@ -156,7 +156,7 @@ export const CenterManagement: React.FC = () => {
       // Create all configured rooms for this new center
       const validRooms = initialRooms.filter(r => r.trim());
       const roomsToCreate = validRooms.length > 0 ? validRooms : ['Main Lab 1'];
-      
+
       roomsToCreate.forEach((rName, idx) => {
         addClassroom({
           name: rName,
@@ -229,14 +229,14 @@ export const CenterManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Centers & Rooms Directory</h1>
-          <p className="text-sm text-gray-500">Official national network of Koding Next campuses and lab facilities across Indonesia</p>
+
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="primary" size="md">
             Total {centers.length} Active Centers
           </Badge>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             icon={<Plus className="w-4 h-4" />}
             onClick={handleOpenCreateCenter}
           >
@@ -289,18 +289,18 @@ export const CenterManagement: React.FC = () => {
                     <Badge variant="success" size="sm" dot>
                       {c.code}
                     </Badge>
-                    <button 
-                      onClick={() => handleOpenEditCenter(c)} 
-                      aria-label="Edit Center" 
+                    <button
+                      onClick={() => handleOpenEditCenter(c)}
+                      aria-label="Edit Center"
                       className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded cursor-pointer transition-colors"
                       title="Edit Center"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     {c.id !== 'ctr-online' && (
-                      <button 
-                        onClick={() => setCenterToDelete(c)} 
-                        aria-label="Delete Center" 
+                      <button
+                        onClick={() => setCenterToDelete(c)}
+                        aria-label="Delete Center"
                         className="p-1 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer transition-colors"
                         title="Delete Center"
                       >
@@ -309,11 +309,6 @@ export const CenterManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-
-                <p className="text-xs text-gray-500 mt-2 flex items-start gap-1.5 leading-relaxed">
-                  <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
-                  {c.address}
-                </p>
 
                 {/* Metrics */}
                 <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-100 text-center">
@@ -328,18 +323,6 @@ export const CenterManagement: React.FC = () => {
                   <div className="p-2 bg-gray-50 rounded-lg">
                     <div className="text-xs font-extrabold text-gray-900">{c.activeClassesCount}</div>
                     <div className="text-[10px] text-gray-500">Classes (Batches)</div>
-                  </div>
-                </div>
-
-                {/* Contact info */}
-                <div className="mt-3 space-y-1 text-xs text-gray-600">
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="w-3 h-3 text-gray-400" />
-                    <span>{c.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Mail className="w-3 h-3 text-gray-400" />
-                    <span>{c.email}</span>
                   </div>
                 </div>
               </div>
@@ -617,13 +600,13 @@ export const CenterManagement: React.FC = () => {
       </Modal>
 
       {/* Modal: View & Manage Rooms for Selected Center */}
-      <Modal 
-        isOpen={!!selectedCenterForRooms} 
+      <Modal
+        isOpen={!!selectedCenterForRooms}
         onClose={() => {
           setSelectedCenterForRooms(null);
           setIsAddRoomOpen(false);
           setEditingRoomId(null);
-        }} 
+        }}
         title={`Rooms & Labs — ${selectedCenterForRooms?.name}`}
       >
         <div className="space-y-4">
@@ -632,9 +615,9 @@ export const CenterManagement: React.FC = () => {
               <span className="text-xs font-bold text-primary-900">Branch Lab Facilities</span>
               <p className="text-[11px] text-primary-700">Each room is locked to maximum 6 student capacity for personalized learning.</p>
             </div>
-            <Button 
-              size="sm" 
-              variant="primary" 
+            <Button
+              size="sm"
+              variant="primary"
               icon={<Plus className="w-3.5 h-3.5" />}
               onClick={() => setIsAddRoomOpen(true)}
             >

@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal, ConfirmDialog, Avatar } from '../ui';
 import { UserRole, User } from '../../types';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Mail, 
-  Phone, 
-  Building2, 
-  ShieldCheck, 
-  GraduationCap, 
-  BookOpen, 
+import {
+  Users,
+  Search,
+  Filter,
+  Plus,
+  Trash2,
+  Edit,
+  Mail,
+  Phone,
+  Building2,
+  ShieldCheck,
+  GraduationCap,
+  BookOpen,
   UserCheck,
   KeyRound,
   CheckCircle2,
@@ -58,8 +58,8 @@ export const UserManagement: React.FC = () => {
   const allParents = users.filter(u => u.role === 'parent');
 
   // Centers assigned to the current user
-  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
-    ? currentUser.centerIds 
+  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0
+    ? currentUser.centerIds
     : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
 
   // Find classes taught by this teacher (for teacher role)
@@ -79,8 +79,8 @@ export const UserManagement: React.FC = () => {
     // 1. Super Admin can see everyone
     if (currentUser.role === 'admin') {
       const matchesRole = activeRoleFilter === 'all' || u.role === activeRoleFilter;
-      const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesRole && matchesSearch;
     }
 
@@ -141,21 +141,21 @@ export const UserManagement: React.FC = () => {
     }
 
     const matchesRole = activeRoleFilter === 'all' || u.role === activeRoleFilter;
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
   const handleToggleModule = (modTitle: string) => {
-    setSelectedModules(prev => 
-      prev.includes(modTitle) 
-        ? prev.filter(m => m !== modTitle) 
+    setSelectedModules(prev =>
+      prev.includes(modTitle)
+        ? prev.filter(m => m !== modTitle)
         : [...prev, modTitle]
     );
   };
 
   const handleToggleCenter = (cId: string) => {
-    setSelectedCenterIds(prev => 
+    setSelectedCenterIds(prev =>
       prev.includes(cId)
         ? (prev.length > 1 ? prev.filter(id => id !== cId) : prev) // keep at least 1
         : [...prev, cId]
@@ -206,7 +206,7 @@ export const UserManagement: React.FC = () => {
     setSelectedParentIds(user.handledParentIds && user.handledParentIds.length > 0 ? user.handledParentIds : []);
     setLevel(user.level || 'JK 8-12');
     setStudentSearchQuery('');
-    
+
     // Parse existing specialization into array
     if (user.specialization) {
       const parsed = user.specialization.split(',').map(s => s.trim());
@@ -223,8 +223,8 @@ export const UserManagement: React.FC = () => {
     const assignedCenters = centers.filter(c => selectedCenterIds.includes(c.id));
     const multipleCenterNames = assignedCenters.map(c => c.name).join(', ');
 
-    const specializationStr = selectedModules.length > 0 
-      ? selectedModules.join(', ') 
+    const specializationStr = selectedModules.length > 0
+      ? selectedModules.join(', ')
       : 'General Coding Teacher';
 
     const isMultiCenterRole = role === 'admin_center' || role === 'student_advisor' || role === 'teacher';
@@ -236,20 +236,20 @@ export const UserManagement: React.FC = () => {
     const parentCenters = centers.filter(c => parentCenterIds.includes(c.id));
     const parentCenterNames = parentCenters.map(c => c.name).join(', ') || 'Online / Branch';
 
-    const finalCenterId = isSuperAdmin 
-      ? 'all' 
-      : role === 'parent' 
-        ? (parentCenterIds[0] || 'ctr-kemayoran') 
+    const finalCenterId = isSuperAdmin
+      ? 'all'
+      : role === 'parent'
+        ? (parentCenterIds[0] || 'ctr-kemayoran')
         : (isMultiCenterRole ? (selectedCenterIds[0] || centerId) : centerId);
 
-    const finalCenterIds = isSuperAdmin 
-      ? centers.map(c => c.id) 
+    const finalCenterIds = isSuperAdmin
+      ? centers.map(c => c.id)
       : role === 'parent'
         ? (parentCenterIds.length > 0 ? parentCenterIds : ['ctr-kemayoran'])
         : (isMultiCenterRole ? selectedCenterIds : (centerId ? [centerId] : []));
 
-    const finalCenterName = isSuperAdmin 
-      ? 'All Centers (Nationwide)' 
+    const finalCenterName = isSuperAdmin
+      ? 'All Centers (Nationwide)'
       : role === 'parent'
         ? parentCenterNames
         : (isMultiCenterRole ? multipleCenterNames : selectedCenter?.name);
@@ -325,7 +325,6 @@ export const UserManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Management System</h1>
-          <p className="text-sm text-gray-500">Manage Student Advisors, Teachers, Parents, Students, and Administrators</p>
         </div>
         <Button onClick={handleOpenCreate} icon={<Plus className="w-4 h-4" />}>
           Add New User
@@ -350,11 +349,10 @@ export const UserManagement: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveRoleFilter(tab.id)}
-            className={`px-4 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors border-b-2 ${
-              activeRoleFilter === tab.id
+            className={`px-4 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors border-b-2 ${activeRoleFilter === tab.id
                 ? 'border-primary-600 text-primary-600 bg-primary-50/40'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -399,103 +397,103 @@ export const UserManagement: React.FC = () => {
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={u.name} size="md" />
-                      <div>
-                        <div className="font-bold text-gray-900">{u.name}</div>
-                        <div className="text-[11px] text-gray-400">Joined: {u.joinDate}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge
-                      variant={
-                        u.role === 'admin' ? 'primary' :
-                        u.role === 'teacher' ? 'success' :
-                        u.role === 'student' ? 'purple' :
-                        u.role === 'parent' ? 'warning' : 'neutral'
-                      }
-                      size="sm"
-                    >
-                      {u.role.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-xs">
-                    {u.role === 'admin' ? (
-                      <span className="font-semibold text-purple-700">All Centers (Nationwide)</span>
-                    ) : (() => {
-                      const assignedIds = (u.centerIds && u.centerIds.length > 0)
-                        ? u.centerIds
-                        : (u.centerId && u.centerId !== 'all' ? [u.centerId] : []);
-
-                      if (assignedIds.length === 0) {
-                        return <span className="text-gray-400">-</span>;
-                      }
-
-                      const matchedCenters = assignedIds
-                        .map(id => centers.find(c => c.id === id))
-                        .filter(Boolean);
-
-                      if (matchedCenters.length === 0) {
-                        return <span className="text-gray-700">{u.centerName || 'All Centers'}</span>;
-                      }
-
-                      return (
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {matchedCenters.map((c: any, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-brand-blue text-[11px] font-medium border border-blue-200/70"
-                            >
-                              {c.name.replace('Koding Next - ', '')}
-                            </span>
-                          ))}
+                  <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={u.name} size="md" />
+                        <div>
+                          <div className="font-bold text-gray-900">{u.name}</div>
+                          <div className="text-[11px] text-gray-400">Joined: {u.joinDate}</div>
                         </div>
-                      );
-                    })()}
-                  </td>
-                  <td className="py-3.5 px-4 text-xs">
-                    <div className="font-medium text-gray-900">{u.email}</div>
-                    <div className="text-gray-400">{u.phone || '-'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-xs">
-                    <span className="font-medium text-gray-800">{u.level || u.specialization || '-'}</span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <Badge variant={u.status === 'active' ? 'success' : 'warning'} size="sm" dot>
-                      {u.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleOpenChangePassword(u)}
-                        title="Ganti / Reset Password User"
-                        aria-label="Ganti Password"
-                        className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 cursor-pointer"
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge
+                        variant={
+                          u.role === 'admin' ? 'primary' :
+                            u.role === 'teacher' ? 'success' :
+                              u.role === 'student' ? 'purple' :
+                                u.role === 'parent' ? 'warning' : 'neutral'
+                        }
+                        size="sm"
                       >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEdit(u)}
-                        aria-label="Edit User"
-                        className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-100 cursor-pointer"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setUserToDelete(u)}
-                        aria-label="Delete User"
-                        className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-gray-100 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )))}
+                        {u.role.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs">
+                      {u.role === 'admin' ? (
+                        <span className="font-semibold text-purple-700">All Centers (Nationwide)</span>
+                      ) : (() => {
+                        const assignedIds = (u.centerIds && u.centerIds.length > 0)
+                          ? u.centerIds
+                          : (u.centerId && u.centerId !== 'all' ? [u.centerId] : []);
+
+                        if (assignedIds.length === 0) {
+                          return <span className="text-gray-400">-</span>;
+                        }
+
+                        const matchedCenters = assignedIds
+                          .map(id => centers.find(c => c.id === id))
+                          .filter(Boolean);
+
+                        if (matchedCenters.length === 0) {
+                          return <span className="text-gray-700">{u.centerName || 'All Centers'}</span>;
+                        }
+
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {matchedCenters.map((c: any, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-brand-blue text-[11px] font-medium border border-blue-200/70"
+                              >
+                                {c.name.replace('Koding Next - ', '')}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs">
+                      <div className="font-medium text-gray-900">{u.email}</div>
+                      <div className="text-gray-400">{u.phone || '-'}</div>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs">
+                      <span className="font-medium text-gray-800">{u.level || u.specialization || '-'}</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <Badge variant={u.status === 'active' ? 'success' : 'warning'} size="sm" dot>
+                        {u.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenChangePassword(u)}
+                          title="Ganti / Reset Password User"
+                          aria-label="Ganti Password"
+                          className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 cursor-pointer"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(u)}
+                          aria-label="Edit User"
+                          className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-100 cursor-pointer"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setUserToDelete(u)}
+                          aria-label="Delete User"
+                          className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-gray-100 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )))}
             </tbody>
           </table>
         </div>
@@ -627,9 +625,8 @@ export const UserManagement: React.FC = () => {
                     return (
                       <label
                         key={c.id}
-                        className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer transition-colors text-xs ${
-                          isChecked ? 'bg-primary-50/90 border border-primary-300 text-primary-950 font-semibold' : 'hover:bg-gray-100 text-gray-700 border border-transparent'
-                        }`}
+                        className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer transition-colors text-xs ${isChecked ? 'bg-primary-50/90 border border-primary-300 text-primary-950 font-semibold' : 'hover:bg-gray-100 text-gray-700 border border-transparent'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -649,14 +646,14 @@ export const UserManagement: React.FC = () => {
                     const c = centers.find(center => center.id === cId);
                     if (!c) return null;
                     return (
-                      <span 
-                        key={cId} 
+                      <span
+                        key={cId}
                         className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-md text-[10px] font-semibold"
                       >
                         {c.name}
                         {selectedCenterIds.length > 1 && (
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleToggleCenter(cId)}
                             className="text-blue-500 hover:text-rose-600 font-bold ml-0.5"
                           >
@@ -725,11 +722,10 @@ export const UserManagement: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => setModuleCategoryFilter(tab.id)}
-                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors shrink-0 ${
-                      moduleCategoryFilter === tab.id
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors shrink-0 ${moduleCategoryFilter === tab.id
                         ? 'bg-slate-800 text-white shadow-xs'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -745,9 +741,8 @@ export const UserManagement: React.FC = () => {
                     return (
                       <label
                         key={mod.id}
-                        className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
-                          isChecked ? 'bg-primary-50/80 border border-primary-200' : 'hover:bg-gray-100'
-                        }`}
+                        className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${isChecked ? 'bg-primary-50/80 border border-primary-200' : 'hover:bg-gray-100'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -773,13 +768,13 @@ export const UserManagement: React.FC = () => {
               {selectedModules.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1 max-h-20 overflow-y-auto">
                   {selectedModules.map(m => (
-                    <span 
-                      key={m} 
+                    <span
+                      key={m}
                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-md text-[10px] font-semibold"
                     >
                       {m}
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => handleToggleModule(m)}
                         className="text-emerald-500 hover:text-rose-600 font-bold ml-0.5"
                       >
@@ -856,9 +851,8 @@ export const UserManagement: React.FC = () => {
                     return (
                       <label
                         key={student.id}
-                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
-                          isChecked ? 'bg-primary-50/90 border border-primary-300' : 'hover:bg-gray-100'
-                        }`}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${isChecked ? 'bg-primary-50/90 border border-primary-300' : 'hover:bg-gray-100'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -893,10 +887,10 @@ export const UserManagement: React.FC = () => {
                     (student.level && student.level.toLowerCase().includes(q))
                   );
                 }).length === 0 && (
-                  <div className="py-4 text-center text-xs text-gray-500">
-                    Tidak ditemukan murid dengan kata kunci "{studentSearchQuery}"
-                  </div>
-                )}
+                    <div className="py-4 text-center text-xs text-gray-500">
+                      Tidak ditemukan murid dengan kata kunci "{studentSearchQuery}"
+                    </div>
+                  )}
               </div>
 
               {/* Selected Children Badges Preview */}
@@ -906,13 +900,13 @@ export const UserManagement: React.FC = () => {
                     const student = allStudents.find(s => s.id === sId);
                     if (!student) return null;
                     return (
-                      <span 
-                        key={sId} 
+                      <span
+                        key={sId}
                         className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-800 border border-purple-200 rounded-md text-[10px] font-semibold"
                       >
                         {student.name}
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleToggleStudent(sId)}
                           className="text-purple-500 hover:text-rose-600 font-bold ml-0.5"
                         >
@@ -961,9 +955,8 @@ export const UserManagement: React.FC = () => {
                     return (
                       <label
                         key={parent.id}
-                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${
-                          isChecked ? 'bg-amber-50/90 border border-amber-300' : 'hover:bg-gray-100'
-                        }`}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors text-xs ${isChecked ? 'bg-amber-50/90 border border-amber-300' : 'hover:bg-gray-100'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -994,13 +987,13 @@ export const UserManagement: React.FC = () => {
                     const parent = allParents.find(p => p.id === pId);
                     if (!parent) return null;
                     return (
-                      <span 
-                        key={pId} 
+                      <span
+                        key={pId}
                         className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-semibold"
                       >
                         {parent.name}
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleToggleParent(pId)}
                           className="text-amber-500 hover:text-rose-600 font-bold ml-0.5"
                         >
@@ -1067,11 +1060,10 @@ export const UserManagement: React.FC = () => {
             </div>
 
             {adminPasswordMsg && (
-              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                adminPasswordMsg.type === 'success' 
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${adminPasswordMsg.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                   : 'bg-rose-50 text-rose-800 border border-rose-200'
-              }`}>
+                }`}>
                 {adminPasswordMsg.type === 'success' ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 ) : (
