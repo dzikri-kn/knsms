@@ -142,4 +142,13 @@ export interface RoomBooking {
   endTime: string;
   studentNames: string[];
   status: 'confirmed' | 'pending' | 'cancelled';
+  // Prospect / Trial booking lead details
+  parentName?: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  studentName?: string;
+  studentEmail?: string;
+  studentLevel?: string;
+  paymentStatus?: 'unpaid' | 'paid';
+  trialCompleted?: boolean;
 }
