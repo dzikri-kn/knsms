@@ -14,7 +14,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-export const ParentDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
+export const ParentDashboard: React.FC<{ onNavigate: (tab: string) => void; activeTab?: string }> = ({ onNavigate, activeTab = 'dashboard' }) => {
   const { currentUser, users, attendance, projects, classes } = useApp();
 
   // Find children of this parent dynamically
@@ -28,6 +28,11 @@ export const ParentDashboard: React.FC<{ onNavigate: (tab: string) => void }> = 
   const childAttendance = attendance.filter(a => a.studentId === activeChild?.id);
   const childProjects = projects.filter(p => p.studentId === activeChild?.id);
   const childClasses = classes.filter(c => (c.studentIds || []).includes(activeChild?.id));
+
+  const showAll = activeTab === 'dashboard';
+  const showProgressOnly = activeTab === 'children_progress';
+  const showAttendanceOnly = activeTab === 'attendance_history';
+  const showProjectsOnly = activeTab === 'my_projects';
 
   return (
     <div className="space-y-6">
@@ -76,138 +81,147 @@ export const ParentDashboard: React.FC<{ onNavigate: (tab: string) => void }> = 
         }))}
       </div>
 
-      {/* Child Metrics Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Attendance Rate</span>
-            <CheckCircle2 className="w-5 h-5 text-amber-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">100%</div>
-          <p className="text-xs text-success-600 font-semibold mt-1">Always punctual</p>
-        </Card>
+      {/* Child Metrics Overview - shown on Parent Portal (Dashboard) and My Children Progress */}
+      {(showAll || showProgressOnly) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-amber-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Attendance Rate</span>
+              <CheckCircle2 className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">100%</div>
+            <p className="text-xs text-success-600 font-semibold mt-1">Always punctual</p>
+          </Card>
 
-        <Card className="border-l-4 border-l-primary-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Enrolled Track</span>
-            <BookOpen className="w-5 h-5 text-primary-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{activeChild?.level}</div>
-          <p className="text-xs text-gray-500 mt-1">Jakarta - Kemayoran</p>
-        </Card>
+          <Card className="border-l-4 border-l-primary-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Enrolled Track</span>
+              <BookOpen className="w-5 h-5 text-primary-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">{activeChild?.level}</div>
+            <p className="text-xs text-gray-500 mt-1">Jakarta - Kemayoran</p>
+          </Card>
 
-        <Card className="border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Completed Projects</span>
-            <Award className="w-5 h-5 text-emerald-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{childProjects.length} Projects</div>
-          <p className="text-xs text-gray-500 mt-1">Average Score: 95.5 / 100</p>
-        </Card>
+          <Card className="border-l-4 border-l-emerald-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Completed Projects</span>
+              <Award className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">{childProjects.length} Projects</div>
+            <p className="text-xs text-gray-500 mt-1">Average Score: 95.5 / 100</p>
+          </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Next Class Session</span>
-            <Calendar className="w-5 h-5 text-purple-500" />
-          </div>
-          <div className="mt-2 text-lg font-extrabold text-gray-900">Saturday, 10:00 AM</div>
-          <p className="text-xs text-gray-500 mt-1">Hopper Lab (Room 103)</p>
-        </Card>
-      </div>
-
-      {/* Projects Showcase & Portfolio */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              Coding Portfolio: {activeChild?.name}
-            </h2>
-            <p className="text-xs text-gray-500">Capstone coding projects and creations</p>
-          </div>
+          <Card className="border-l-4 border-l-purple-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Next Class Session</span>
+              <Calendar className="w-5 h-5 text-purple-500" />
+            </div>
+            <div className="mt-2 text-lg font-extrabold text-gray-900">Saturday, 10:00 AM</div>
+            <p className="text-xs text-gray-500 mt-1">Hopper Lab (Room 103)</p>
+          </Card>
         </div>
+      )}
 
-        {childProjects.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 text-sm">
-            No projects submitted yet for this module.
+      {/* Projects Showcase & Portfolio - shown on Dashboard, Children Progress, and Projects Showcase */}
+      {(showAll || showProgressOnly || showProjectsOnly) && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                Coding Portfolio: {activeChild?.name}
+              </h2>
+              <p className="text-xs text-gray-500">Capstone coding projects and creations</p>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {childProjects.map((proj) => (
-              <div key={proj.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                <img src={proj.thumbnail} alt={proj.title} className="w-full h-48 object-cover" />
-                <div className="p-5">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="purple" size="sm">{proj.moduleName}</Badge>
-                    {proj.grade && (
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-extrabold text-sm rounded-lg border border-emerald-200">
-                        ⭐ {proj.grade} / 100
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mt-2">{proj.title}</h3>
-                  <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{proj.description}</p>
-                  
-                  {proj.feedback && (
-                    <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                      <div className="font-bold flex items-center gap-1 mb-0.5">
-                        💬 Teacher Feedback & Notes:
-                      </div>
-                      <p className="italic">"{proj.feedback}"</p>
-                    </div>
-                  )}
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[11px] text-gray-400">Submitted: {proj.submissionDate}</span>
-                    <a
-                      href={proj.projectUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700"
-                    >
-                      Open Live Demo <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+          {childProjects.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              No projects submitted yet for this module.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {childProjects.map((proj) => (
+                <div key={proj.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <img src={proj.thumbnail} alt={proj.title} className="w-full h-48 object-cover" />
+                  <div className="p-5">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="purple" size="sm">{proj.moduleName}</Badge>
+                      {proj.grade && (
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-extrabold text-sm rounded-lg border border-emerald-200">
+                          ⭐ {proj.grade} / 100
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 mt-2">{proj.title}</h3>
+                    <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{proj.description}</p>
+                    
+                    {proj.feedback && (
+                      <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
+                        <div className="font-bold flex items-center gap-1 mb-0.5">
+                          💬 Teacher Feedback & Notes:
+                        </div>
+                        <p className="italic">"{proj.feedback}"</p>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400">Submitted: {proj.submissionDate}</span>
+                      <a
+                        href={proj.projectUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700"
+                      >
+                        Open Live Demo <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Attendance History */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">Course Attendance Log</h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500 border-y border-gray-200">
-              <tr>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Class Session</th>
-                <th className="py-3 px-4">Attendance Status</th>
-                <th className="py-3 px-4">Mentor Note</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {childAttendance.map((att) => (
-                <tr key={att.id}>
-                  <td className="py-3 px-4 text-xs font-bold text-gray-800">{att.date}</td>
-                  <td className="py-3 px-4 text-xs font-semibold text-gray-900">{att.className}</td>
-                  <td className="py-3 px-4">
-                    <Badge variant={att.status === 'present' ? 'success' : 'warning'} size="sm" dot>
-                      {att.status === 'present' ? 'Present' : att.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3 px-4 text-xs text-gray-600">{att.note || '-'}</td>
-                </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Attendance History - shown on Dashboard and Attendance History */}
+      {(showAll || showAttendanceOnly) && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Course Attendance Log</h2>
+              <p className="text-xs text-gray-500">Record of attended sessions and mentor feedback notes</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500 border-y border-gray-200">
+                <tr>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Class Session</th>
+                  <th className="py-3 px-4">Attendance Status</th>
+                  <th className="py-3 px-4">Mentor Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {childAttendance.map((att) => (
+                  <tr key={att.id}>
+                    <td className="py-3 px-4 text-xs font-bold text-gray-800">{att.date}</td>
+                    <td className="py-3 px-4 text-xs font-semibold text-gray-900">{att.className}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={att.status === 'present' ? 'success' : 'warning'} size="sm" dot>
+                        {att.status === 'present' ? 'Present' : att.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">{att.note || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal, Avatar } from '../ui';
-import { 
-  BookOpen, 
-  ClipboardCheck, 
-  Users, 
-  Calendar, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  AlertCircle, 
+import {
+  BookOpen,
+  ClipboardCheck,
+  Users,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertCircle,
   Award,
   Video,
   Send,
@@ -18,11 +18,14 @@ import {
 } from 'lucide-react';
 
 export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
-  const { currentUser, classes, users, attendance, markAttendance, projects, updateProject } = useApp();
+  const { currentUser, classes, users, attendance, markAttendance, projects, updateProject, bookings = [] } = useApp();
 
   // Find classes assigned to this teacher
   const teacherClasses = classes.filter(c => c.teacherId === currentUser.id || c.teacherName === currentUser.name);
   const activeClass = teacherClasses[0] || classes[0];
+
+  // Find trial / room bookings assigned to this teacher
+  const teacherBookings = bookings.filter(b => b.teacherId === currentUser.id || b.teacherName === currentUser.name);
 
   const teacherStudentIds = new Set(teacherClasses.flatMap(c => c.studentIds || []));
   const activeClassStudentIds = new Set(activeClass?.studentIds || []);
@@ -92,7 +95,7 @@ export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
             </a>
           ) : activeClass ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 text-white border border-white/20 rounded-lg text-xs font-semibold">
-              <Building2 className="w-3.5 h-3.5" /> In-Center Lab: {activeClass.roomName}
+              <Building2 className="w-3.5 h-3.5" /> Room: {activeClass.roomName}
             </div>
           ) : null}
         </div>
@@ -164,8 +167,8 @@ export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
                     <div className="text-xs text-gray-500 flex items-center gap-2">
                       <span>Level: {st.level || 'JK 12-16'}</span>
                       {todayRecord && (
-                        <Badge 
-                          variant={todayRecord.status === 'present' ? 'success' : todayRecord.status === 'late' ? 'warning' : 'danger'} 
+                        <Badge
+                          variant={todayRecord.status === 'present' ? 'success' : todayRecord.status === 'late' ? 'warning' : 'danger'}
                           size="sm"
                         >
                           Status: {todayRecord.status.toUpperCase()}
@@ -208,6 +211,64 @@ export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
         </div>
       </Card>
 
+      {/* Assigned Trial & Special Bookings for this Teacher */}
+      {teacherBookings.length > 0 && (
+        <Card className="border-l-4 border-l-purple-500 bg-purple-50/20">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-purple-600" />
+                Jadwal Trial Class & Sesi Khusus Ditugaskan
+              </h2>
+              <p className="text-xs text-gray-500">Sesi trial calon murid yang telah di-assign oleh Admin Center kepada Anda</p>
+            </div>
+            <Badge variant="purple" size="sm">
+              {teacherBookings.length} Sesi Terjadwal
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {teacherBookings.map((tb) => (
+              <div key={tb.id} className="bg-white border border-purple-200 rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Badge variant={tb.bookingType === 'Trial' || tb.bookingType === 'Trial Regular' ? 'warning' : 'primary'} size="sm">
+                      {tb.bookingType}
+                    </Badge>
+                    <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                      ⏰ {tb.date} ({tb.startTime} - {tb.endTime})
+                    </span>
+                  </div>
+
+                  <div className="font-bold text-gray-900 text-sm">
+                    Murid: {tb.studentName || tb.studentNames?.join(', ')}
+                    {tb.studentLevel && <span className="ml-1.5 text-xs text-purple-600 font-semibold">({tb.studentLevel})</span>}
+                  </div>
+
+                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{tb.centerName} • <b>{tb.roomName}</b></span>
+                  </div>
+
+                  {tb.parentName && (
+                    <div className="text-xs text-gray-600 mt-1">
+                      Parent: {tb.parentName} {tb.parentPhone ? `(${tb.parentPhone})` : ''}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Advisor: {tb.advisorName}</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                    ✓ Status: Confirmed
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Projects to Review */}
       <Card>
         <div className="flex items-center justify-between mb-4">
@@ -224,32 +285,32 @@ export const TeacherDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
             </div>
           ) : (
             teacherProjects.map((proj) => (
-            <div key={proj.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col justify-between">
-              <div>
-                <img src={proj.thumbnail} alt={proj.title} className="w-full h-32 object-cover rounded-lg mb-3" />
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant="purple" size="sm">{proj.moduleName.split(':')[0]}</Badge>
-                  {proj.grade && <span className="text-xs font-bold text-emerald-600">Grade: {proj.grade}/100</span>}
+              <div key={proj.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col justify-between">
+                <div>
+                  <img src={proj.thumbnail} alt={proj.title} className="w-full h-32 object-cover rounded-lg mb-3" />
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge variant="purple" size="sm">{proj.moduleName.split(':')[0]}</Badge>
+                    {proj.grade && <span className="text-xs font-bold text-emerald-600">Grade: {proj.grade}/100</span>}
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-sm mt-1">{proj.title}</h3>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{proj.description}</p>
+                  <div className="text-xs text-gray-600 mt-2 font-medium">👤 By: {proj.studentName}</div>
                 </div>
-                <h3 className="font-bold text-gray-900 text-sm mt-1">{proj.title}</h3>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{proj.description}</p>
-                <div className="text-xs text-gray-600 mt-2 font-medium">👤 By: {proj.studentName}</div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
-                <a href={proj.projectUrl} target="_blank" rel="noreferrer" className="text-xs text-primary-600 hover:underline">
-                  View Code ↗
-                </a>
-                <Button size="sm" variant="primary" onClick={() => {
-                  setSelectedStudentForGrading(proj);
-                  setGradeValue(proj.grade || 95);
-                  setFeedbackValue(proj.feedback || '');
-                }}>
-                  Grade Project
-                </Button>
+                <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+                  <a href={proj.projectUrl} target="_blank" rel="noreferrer" className="text-xs text-primary-600 hover:underline">
+                    View Code ↗
+                  </a>
+                  <Button size="sm" variant="primary" onClick={() => {
+                    setSelectedStudentForGrading(proj);
+                    setGradeValue(proj.grade || 95);
+                    setFeedbackValue(proj.feedback || '');
+                  }}>
+                    Grade Project
+                  </Button>
+                </div>
               </div>
-            </div>
-          )))}
+            )))}
         </div>
       </Card>
 

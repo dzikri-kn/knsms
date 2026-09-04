@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal } from '../ui';
 import { Classroom } from '../../types';
-import { 
-  Building2, 
-  Users, 
-  BookOpen, 
-  DoorClosed, 
-  CheckCircle2, 
-  Clock, 
-  Plus, 
+import {
+  Building2,
+  Users,
+  BookOpen,
+  DoorClosed,
+  CheckCircle2,
+  Clock,
+  Plus,
   Calendar,
   AlertTriangle,
   Sparkles,
@@ -20,21 +20,22 @@ import {
   Video,
   Check,
   X,
-  ShieldCheck
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react';
 
 export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
   const { currentUser, centers, classrooms, classes, users, addClassroom, updateClassroom, deleteClassroom, bookings, updateBooking, selectedCenterId, setSelectedCenterId, isSuperAdminSession } = useApp();
-  
+
   // Assigned centers for this Center Admin. If Super Admin session, all centers are accessible
   const assignedCenterIds = isSuperAdminSession
     ? centers.map(c => c.id)
-    : (currentUser.centerIds && currentUser.centerIds.length > 0 
-        ? currentUser.centerIds 
-        : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']));
-  
-  const assignedCenters = isSuperAdminSession 
-    ? centers 
+    : (currentUser.centerIds && currentUser.centerIds.length > 0
+      ? currentUser.centerIds
+      : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']));
+
+  const assignedCenters = isSuperAdminSession
+    ? centers
     : centers.filter(c => assignedCenterIds.includes(c.id));
 
   // Determine initial active center (prefer selectedCenterId if valid and not 'all')
@@ -52,7 +53,7 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
   }, [selectedCenterId, centers]);
 
   const currentCenter = centers.find(c => c.id === activeCenterId) || assignedCenters[0] || centers[0];
-  
+
   const centerClassrooms = classrooms.filter(r => r.centerId === currentCenter?.id);
   const centerClasses = classes.filter(c => c.centerId === currentCenter?.id);
   const centerTeachers = users.filter(u => u.role === 'teacher' && (u.centerId === currentCenter?.id || (u.centerIds && u.centerIds.includes(currentCenter?.id))));
@@ -65,6 +66,27 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
 
   const handleRejectBooking = (bookingId: string) => {
     updateBooking(bookingId, { status: 'cancelled' });
+  };
+
+  // State for Assigning Teacher to Booking Modal
+  const [assignTeacherTargetBooking, setAssignTeacherTargetBooking] = useState<typeof bookings[0] | null>(null);
+  const [selectedTeacherIdForBooking, setSelectedTeacherIdForBooking] = useState<string>('');
+
+  const handleOpenAssignTeacher = (b: typeof bookings[0]) => {
+    setAssignTeacherTargetBooking(b);
+    setSelectedTeacherIdForBooking(b.teacherId || centerTeachers[0]?.id || '');
+  };
+
+  const handleSaveTeacherAssignment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignTeacherTargetBooking) return;
+    const assignedTeacher = users.find(u => u.id === selectedTeacherIdForBooking);
+    updateBooking(assignTeacherTargetBooking.id, {
+      teacherId: selectedTeacherIdForBooking || undefined,
+      teacherName: assignedTeacher?.name || undefined,
+      status: 'confirmed', // Automatically mark as confirmed when teacher is assigned
+    });
+    setAssignTeacherTargetBooking(null);
   };
 
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
@@ -94,10 +116,10 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
     e.preventDefault();
     if (!roomNameInput) return;
 
-    const baseFacilities = isCurrentCenterOnline 
+    const baseFacilities = isCurrentCenterOnline
       ? ['Virtual Lab', 'Cloud Workstations', 'Screen Share Support']
       : ['Smart TV', 'High-Speed Wi-Fi', 'AC', '6x iMac Workstations'];
-    
+
     if (isCurrentCenterOnline && roomZoomLinkInput.trim()) {
       baseFacilities.push(`Zoom: ${roomZoomLinkInput.trim()}`);
     }
@@ -161,17 +183,17 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="primary" 
-            size="sm" 
+          <Button
+            variant="primary"
+            size="sm"
             icon={<Plus className="w-4 h-4" />}
             onClick={handleOpenAddRoom}
           >
-            Add New Lab Room
+            Add New Room
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => onNavigate('schedule')}
           >
             View Center Schedule
@@ -236,7 +258,7 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
             <p className="text-sm font-semibold text-gray-700">No rooms created yet for {currentCenter.name}</p>
             <p className="text-xs text-gray-400 mt-0.5 mb-3">Add lab rooms to assign batches and schedule classes.</p>
             <Button size="sm" variant="primary" onClick={handleOpenAddRoom} icon={<Plus className="w-3.5 h-3.5" />}>
-              Add First Lab Room
+              Add First Room
             </Button>
           </Card>
         ) : (
@@ -281,11 +303,10 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {room.facilities.map((f, i) => (
-                        <span key={i} className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${
-                          f.startsWith('Zoom: ') 
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <span key={i} className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${f.startsWith('Zoom: ')
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-gray-100 text-gray-600'
+                          }`}>
                           {f}
                         </span>
                       ))}
@@ -345,6 +366,7 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                   <th className="py-3 px-4">Kontak Parent</th>
                   <th className="py-3 px-4">Waktu</th>
                   <th className="py-3 px-4">Student Advisor</th>
+                  <th className="py-3 px-4">Guru / Pengajar</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-center">Aksi Konfirmasi</th>
                 </tr>
@@ -377,33 +399,56 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
                       <div className="text-purple-600 font-semibold">{b.startTime} - {b.endTime}</div>
                     </td>
                     <td className="py-3 px-4 text-xs text-gray-700">{b.advisorName}</td>
+                    <td className="py-3 px-4 text-xs">
+                      {b.teacherName ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
+                            👤 {b.teacherName}
+                          </span>
+                          <button
+                            onClick={() => handleOpenAssignTeacher(b)}
+                            title="Ganti Guru"
+                            className="p-1 text-gray-400 hover:text-primary-600 rounded transition-colors"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenAssignTeacher(b)}
+                          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <UserCheck className="w-3.5 h-3.5 text-purple-600" /> Assign Guru
+                        </button>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-center">
-                      <Badge 
-                        variant={b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'warning'} 
+                      <Badge
+                        variant={b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'warning'}
                         size="sm"
                       >
                         {b.status === 'confirmed' ? 'Confirmed' : b.status === 'cancelled' ? 'Ditolak' : 'Pending'}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {b.status === 'pending' ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleConfirmBooking(b.id)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5" /> Confirm
-                          </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenAssignTeacher(b)}
+                          title="Assign Teacher & Konfirmasi"
+                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" /> {b.teacherName ? 'Edit Guru' : 'Assign Guru'}
+                        </button>
+                        {b.status === 'pending' && (
                           <button
                             onClick={() => handleRejectBooking(b.id)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Tolak Permintaan"
+                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" /> Tolak
                           </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 font-medium">Selesai</span>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -535,6 +580,67 @@ export const AdminCenterDashboard: React.FC<{ onNavigate: (tab: string) => void 
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal Assign Teacher to Booking */}
+      <Modal
+        isOpen={!!assignTeacherTargetBooking}
+        onClose={() => setAssignTeacherTargetBooking(null)}
+        title="Tugaskan Guru / Pengajar (Assign Teacher)"
+      >
+        {assignTeacherTargetBooking && (
+          <form onSubmit={handleSaveTeacherAssignment} className="space-y-4">
+            <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold text-purple-950">
+                <span>{assignTeacherTargetBooking.roomName} • {assignTeacherTargetBooking.bookingType} Class</span>
+                <Badge variant="warning" size="sm">{assignTeacherTargetBooking.studentLevel || 'Trial'}</Badge>
+              </div>
+              <p className="text-xs text-purple-800">
+                Calon Murid: <b>{assignTeacherTargetBooking.studentName}</b> ({assignTeacherTargetBooking.parentName ? `Orang Tua: ${assignTeacherTargetBooking.parentName}` : 'Tanpa Kontak'})
+              </p>
+              <p className="text-[11px] text-purple-600">
+                📅 {assignTeacherTargetBooking.date} • ⏰ {assignTeacherTargetBooking.startTime} - {assignTeacherTargetBooking.endTime}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                Pilih Guru / Pengajar ({centerTeachers.length} Guru di Cabang Ini)
+              </label>
+              <select
+                value={selectedTeacherIdForBooking}
+                onChange={(e) => setSelectedTeacherIdForBooking(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              >
+                <option value="" disabled>-- Pilih Guru Pengajar --</option>
+                {centerTeachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    👨‍🏫 {t.name} {t.specialization ? `(${t.specialization})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedTeacherIdForBooking && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Guru yang dipilih akan dijadwalkan untuk sesi ini dan status booking otomatis menjadi <b>Confirmed</b>.
+                </span>
+              </div>
+            )}
+
+            <div className="pt-3 flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setAssignTeacherTargetBooking(null)}>
+                Batal
+              </Button>
+              <Button type="submit" variant="primary" className="bg-purple-600 hover:bg-purple-700">
+                Simpan & Konfirmasi Guru
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

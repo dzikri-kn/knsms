@@ -90,17 +90,23 @@ export const App: React.FC = () => {
     if (activeTab === 'schedule' || activeTab === 'my_schedule') {
       return <ScheduleTimetable />;
     }
-    if (activeTab === 'classrooms' || activeTab === 'trial_classes') {
+    if (activeTab === 'trial_classes') {
+      if (currentUser.role === 'student_advisor') {
+        return <StudentAdvisorDashboard onNavigate={setActiveTab} />;
+      }
+      return <AdminCenterDashboard onNavigate={setActiveTab} />;
+    }
+    if (activeTab === 'classrooms') {
       return <AdminCenterDashboard onNavigate={setActiveTab} />;
     }
     if (activeTab === 'projects' || activeTab === 'my_projects' || activeTab === 'student_progress') {
       if (currentUser.role === 'student') {
-        return <StudentDashboard onNavigate={setActiveTab} />;
+        return <StudentDashboard onNavigate={setActiveTab} activeTab={activeTab} />;
       }
       return <StudentPortfoliosView />;
     }
     if (activeTab === 'children_progress' || activeTab === 'attendance_history') {
-      return <ParentDashboard onNavigate={setActiveTab} />;
+      return <ParentDashboard onNavigate={setActiveTab} activeTab={activeTab} />;
     }
 
     return <AdminDashboard onNavigate={setActiveTab} />;

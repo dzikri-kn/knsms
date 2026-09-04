@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge, Modal, Avatar } from '../ui';
-import { 
-  Users, 
-  Calendar, 
-  DoorClosed, 
-  TrendingUp, 
-  Plus, 
-  CheckCircle2, 
-  Clock, 
-  UserPlus, 
+import {
+  Users,
+  Calendar,
+  DoorClosed,
+  TrendingUp,
+  Plus,
+  CheckCircle2,
+  Clock,
+  UserPlus,
   Search,
   Sparkles,
   Phone,
@@ -19,25 +19,51 @@ import {
   ShieldCheck,
   Check,
   AlertCircle,
-  Trash2
+  Trash2,
+  Building2,
+  MapPin
 } from 'lucide-react';
 
 export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
-  const { currentUser, classrooms, bookings, addBooking, updateBooking, users, addUser, updateUser, classes, centers } = useApp();
+  const { currentUser, classrooms, bookings, addBooking, updateBooking, users, addUser, updateUser, classes, centers, selectedCenterId, setSelectedCenterId, isSuperAdminSession } = useApp();
 
-  const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
-    ? currentUser.centerIds 
-    : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
+  // If super admin session, all centers are accessible. Otherwise, assigned centers for this advisor.
+  const assignedCenterIds = isSuperAdminSession
+    ? centers.map(c => c.id)
+    : (currentUser.centerIds && currentUser.centerIds.length > 0
+        ? currentUser.centerIds
+        : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']));
 
-  const advisorClassrooms = classrooms.filter(r => assignedCenterIds.includes(r.centerId));
-  const advisorBookings = bookings.filter(b => assignedCenterIds.includes(b.centerId) || b.advisorId === currentUser.id);
-  const advisorStudents = users.filter(u => u.role === 'student' && u.centerId && assignedCenterIds.includes(u.centerId));
+  const assignedCenters = isSuperAdminSession
+    ? centers
+    : centers.filter(c => assignedCenterIds.includes(c.id));
+
+  // Determine initial active center (prefer selectedCenterId if valid and not 'all')
+  const defaultCenterId = (selectedCenterId && selectedCenterId !== 'all' && centers.some(c => c.id === selectedCenterId))
+    ? selectedCenterId
+    : (currentUser.centerId && currentUser.centerId !== 'all' ? currentUser.centerId : (assignedCenterIds[0] || 'ctr-kemayoran'));
+
+  const [activeCenterId, setActiveCenterId] = useState<string>(defaultCenterId);
+
+  // Keep in sync if selectedCenterId changes externally
+  useEffect(() => {
+    if (selectedCenterId && selectedCenterId !== 'all' && centers.some(c => c.id === selectedCenterId)) {
+      setActiveCenterId(selectedCenterId);
+    }
+  }, [selectedCenterId, centers]);
+
+  const currentCenter = centers.find(c => c.id === activeCenterId) || assignedCenters[0] || centers[0];
+
+  // Data scoped specifically to the current active center
+  const advisorClassrooms = classrooms.filter(r => r.centerId === currentCenter?.id || (currentCenter?.id === 'ctr-online' && r.centerName === 'Online'));
+  const advisorBookings = bookings.filter(b => b.centerId === currentCenter?.id);
+  const advisorStudents = users.filter(u => u.role === 'student' && u.centerId === currentCenter?.id);
   const advisorParents = users.filter(u => {
     if (u.role !== 'parent') return false;
-    const hasDirect = u.centerId && assignedCenterIds.includes(u.centerId);
-    const hasMulti = u.centerIds && u.centerIds.some(cid => assignedCenterIds.includes(cid));
-    const hasChild = u.childrenIds && users.some(s => u.childrenIds?.includes(s.id) && s.centerId && assignedCenterIds.includes(s.centerId));
-    return hasDirect || hasMulti || hasChild || (currentUser.handledParentIds && currentUser.handledParentIds.includes(u.id));
+    const hasDirect = u.centerId === currentCenter?.id;
+    const hasMulti = u.centerIds && u.centerIds.includes(currentCenter?.id);
+    const hasChild = u.childrenIds && users.some(s => u.childrenIds?.includes(s.id) && s.centerId === currentCenter?.id);
+    return hasDirect || hasMulti || hasChild;
   });
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -47,12 +73,12 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
   const [bookingType, setBookingType] = useState<'Trial' | 'Catchup' | 'Consult'>('Trial');
   const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
   const [bookingTime, setBookingTime] = useState('15:00 - 16:00');
-  
+
   // Parent info
   const [parentName, setParentName] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [parentPhone, setParentPhone] = useState('');
-  
+
   // Child / Student info
   const [childName, setChildName] = useState('');
   const [childEmail, setChildEmail] = useState('');
@@ -63,7 +89,7 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
   const [notificationMsg, setNotificationMsg] = useState<{ type: 'success' | 'info'; title: string; desc: string } | null>(null);
 
   const handleOpenBookingModal = () => {
-    const defaultCenter = assignedCenterIds[0] || 'ctr-kemayoran';
+    const defaultCenter = activeCenterId || assignedCenterIds[0] || 'ctr-kemayoran';
     setBookingCenterId(defaultCenter);
     const rooms = classrooms.filter(r => r.centerId === defaultCenter || defaultCenter === 'ctr-online');
     setBookingRoomId(rooms[0]?.id || classrooms[0]?.id || '');
@@ -132,8 +158,8 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
     const center = centers.find(c => c.id === booking.centerId) || centers[0];
 
     // 2. Check if parent already exists
-    const existingParent = users.find(u => 
-      u.role === 'parent' && 
+    const existingParent = users.find(u =>
+      u.role === 'parent' &&
       (u.email.toLowerCase() === parentEmail.toLowerCase() || (booking.parentPhone && u.phone === booking.parentPhone))
     );
 
@@ -159,7 +185,7 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
       const currentChildren = existingParent.childrenIds || [];
       const updatedChildren = Array.from(new Set([...currentChildren, studentId]));
       const parentCenters = Array.from(new Set([...(existingParent.centerIds || []), center.id]));
-      
+
       await updateUser(existingParent.id, {
         childrenIds: updatedChildren,
         centerIds: parentCenters,
@@ -198,26 +224,51 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
       {/* Top Advisor Header */}
       <div className="bg-gradient-to-r from-purple-700 to-indigo-800 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <Badge variant="purple" className="bg-white/20 text-white border-white/30 text-xs">
               Student Advisor Portal
             </Badge>
-            <span className="text-xs text-purple-200">Consultation & Enrollment</span>
+            <span className="text-xs text-purple-200">Official Branch</span>
+            {assignedCenters.length > 1 && (
+              <select
+                value={activeCenterId}
+                onChange={(e) => {
+                  setActiveCenterId(e.target.value);
+                  setSelectedCenterId(e.target.value);
+                }}
+                className="ml-2 px-2.5 py-1 bg-white/20 text-white border border-white/30 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer"
+              >
+                {assignedCenters.map(c => (
+                  <option key={c.id} value={c.id} className="text-gray-900 bg-white">
+                    🏢 {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Welcome, {currentUser.name}!</h1>
-          <p className="text-purple-100 text-sm mt-1">
-            Manage student registrations, book free trial coding sessions, parent consultations, and lab room reservations.
+          <h1 className="text-2xl font-bold tracking-tight">{currentCenter?.name}</h1>
+          <p className="text-purple-200 text-sm mt-1 flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5" /> {currentCenter?.city}, {currentCenter?.province} • Trial Class & Consultation Pipeline
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             icon={<Plus className="w-4 h-4 text-purple-700" />}
             onClick={handleOpenBookingModal}
             className="bg-white text-purple-700 hover:bg-purple-50 font-bold border-none shadow-sm"
           >
-            + Book Trial Class / Sesi
+            Book Trial Class
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Calendar className="w-4 h-4" />}
+            onClick={() => onNavigate('schedule')}
+            className="border-white/40 text-white hover:bg-white/10 font-bold"
+          >
+            View Schedule & Timetable
           </Button>
         </div>
       </div>
@@ -266,9 +317,9 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
       {/* Booked Rooms & Sessions List */}
       {/* Notification Modal */}
       {notificationMsg && (
-        <Modal 
-          isOpen={true} 
-          onClose={() => setNotificationMsg(null)} 
+        <Modal
+          isOpen={true}
+          onClose={() => setNotificationMsg(null)}
           title={notificationMsg.title}
         >
           <div className="space-y-4">
@@ -297,10 +348,10 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
                 Pendaftaran trial murid baru. Setelah selesai trial & pembayaran lunas, konfirmasi status menjadi <b>Paid</b> untuk otomatis membuat akun parent & murid.
               </p>
             </div>
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleOpenBookingModal} 
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenBookingModal}
               icon={<Plus className="w-4 h-4" />}
               className="bg-purple-600 hover:bg-purple-700"
             >
@@ -315,22 +366,20 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
               </div>
             ) : (
               advisorBookings.map((b) => (
-                <div 
-                  key={b.id} 
-                  className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
-                    b.paymentStatus === 'paid' 
-                      ? 'bg-emerald-50/40 border-emerald-200' 
-                      : b.status === 'confirmed' 
-                        ? 'bg-purple-50/30 border-purple-200' 
-                        : 'bg-amber-50/30 border-amber-200'
-                  }`}
+                <div
+                  key={b.id}
+                  className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${b.paymentStatus === 'paid'
+                    ? 'bg-emerald-50/40 border-emerald-200'
+                    : b.status === 'confirmed'
+                      ? 'bg-purple-50/30 border-purple-200'
+                      : 'bg-amber-50/30 border-amber-200'
+                    }`}
                 >
                   <div className="flex items-start gap-3.5">
-                    <div className={`p-2.5 rounded-xl shrink-0 ${
-                      b.paymentStatus === 'paid' 
-                        ? 'bg-emerald-100 text-emerald-700' 
-                        : 'bg-purple-100 text-purple-700'
-                    }`}>
+                    <div className={`p-2.5 rounded-xl shrink-0 ${b.paymentStatus === 'paid'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-purple-100 text-purple-700'
+                      }`}>
                       <DoorClosed className="w-5 h-5" />
                     </div>
                     <div>
@@ -339,8 +388,8 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
                         <Badge variant={b.bookingType === 'Trial' ? 'warning' : 'primary'} size="sm">
                           {b.bookingType}
                         </Badge>
-                        <Badge 
-                          variant={b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'warning'} 
+                        <Badge
+                          variant={b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'warning'}
                           size="sm"
                         >
                           Admin: {b.status === 'confirmed' ? 'Confirmed' : b.status === 'cancelled' ? 'Ditolak' : 'Pending Approval'}
@@ -375,6 +424,20 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
                       <p className="text-[11px] text-gray-400 mt-1">
                         Cabang: <b>{b.centerName}</b> • Advisor: {b.advisorName}
                       </p>
+
+                      {/* Assigned Teacher Badge */}
+                      <div className="mt-1.5 flex items-center gap-1 text-xs">
+                        <span className="text-gray-500 font-medium">Guru / Pengajar:</span>
+                        {b.teacherName ? (
+                          <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                            👨‍🏫 {b.teacherName}
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md text-[11px] font-semibold">
+                            ⏳ Menunggu Admin Center Menugaskan Guru
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -428,7 +491,7 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-purple-500 focus:outline-none"
             >
-              {centers.map(c => (
+              {assignedCenters.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name} {c.id === 'ctr-online' ? '(Virtual / Online)' : `(${c.city})`}
                 </option>
@@ -461,7 +524,8 @@ export const StudentAdvisorDashboard: React.FC<{ onNavigate: (tab: string) => vo
                 onChange={(e) => setBookingType(e.target.value as any)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               >
-                <option value="Trial">Free Trial Class</option>
+                <option value="Trial">Free Trial Class (1-on-1)</option>
+                <option value="Trial Regular">Trial Regular Class (Join Existing Batch)</option>
                 <option value="Catchup">Catchup Missing Lesson</option>
                 <option value="Consult">Parent Consultation</option>
               </select>

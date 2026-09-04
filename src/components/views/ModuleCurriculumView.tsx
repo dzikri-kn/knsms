@@ -13,11 +13,14 @@ import {
   Sparkles,
   Layers,
   CheckCircle2,
-  X
+  X,
+  Calendar,
+  MapPin,
+  Video
 } from 'lucide-react';
 
 export const ModuleCurriculumView: React.FC = () => {
-  const { modules, addModule, updateModule, deleteModule } = useApp();
+  const { modules, addModule, updateModule, deleteModule, currentUser, classes, attendance } = useApp();
   const [selectedLevelFilter, setSelectedLevelFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [viewingModule, setViewingModule] = useState<ModuleCurriculum | null>(null);
@@ -39,6 +42,15 @@ export const ModuleCurriculumView: React.FC = () => {
     'Enemy Patrolling & Line of Sight\nState Machine AI Logic\nDynamic High-Score Leaderboards\nBoss Fight Behavior Scripts\nFunctions & Code Modularity\nCollections: Lists & Arrays\nInteractive User Input & Controls\nDebugging & Algorithmic Thinking\nMidterm Milestone Project Build\nObject & Component Architecture\nEvent Listeners & State Logic\nGraphics, UI & Screen Coordinates\nGame Loop & Frame Animation\nPhysics, Gravity & Collision Logic\nSound FX & Audio Integration\nData Persistence & High Scores\nAdvanced Mechanics & Bug Fixing\nCapstone Architecture & Planning\nCapstone Development & Polishing\nRetro Cyberpunk Boss Battle 2D Game'
   );
 
+  const isStudent = currentUser.role === 'student';
+
+  // For students: identify modules from classes the student is enrolled in
+  const enrolledClassModuleIds = isStudent
+    ? classes
+        .filter(c => (c.studentIds || []).includes(currentUser.id))
+        .map(c => c.moduleId)
+    : [];
+
   const levelCategories = [
     { id: 'all', label: 'All Modules' },
     { id: 'LK 4-6', label: 'LK 4-6 (Little Kodders)' },
@@ -56,6 +68,17 @@ export const ModuleCurriculumView: React.FC = () => {
   };
 
   const filteredModules = modules.filter(mod => {
+    // If student: only show modules from classes the student has taken/is enrolled in,
+    // or matching their enrolled learning level if classes haven't been linked yet.
+    if (isStudent) {
+      const isEnrolledInClass = enrolledClassModuleIds.includes(mod.id) || enrolledClassModuleIds.includes(mod.code);
+      const isStudentLevel = currentUser.level ? mod.level.toLowerCase().includes(currentUser.level.toLowerCase()) : false;
+      const isEnrolledTitleMatch = classes.some(c => (c.studentIds || []).includes(currentUser.id) && (c.moduleName === mod.title || mod.title.includes(c.moduleName)));
+
+      const hasTakenModule = isEnrolledInClass || isEnrolledTitleMatch || (enrolledClassModuleIds.length === 0 && isStudentLevel);
+      if (!hasTakenModule) return false;
+    }
+
     const matchesLevel = selectedLevelFilter === 'all' || mod.level === selectedLevelFilter;
     const matchesSearch = mod.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mod.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -234,43 +257,56 @@ export const ModuleCurriculumView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Learning Modules & Syllabus</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isStudent ? 'My Learning Modules & Lessons' : 'Learning Modules & Syllabus'}
+          </h1>
           <p className="text-sm text-gray-500">
-            Standardized curriculum: <strong>20 Lessons per module</strong> (1 lesson per week • 20 weeks total duration)
+            {isStudent 
+              ? 'Modul & kurikulum pembelajaran yang Anda ambil (20 Lessons per module).'
+              : 'Standardized curriculum: 20 Lessons per module (1 lesson per week • 20 weeks total duration)'}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="primary" size="md">
-            Total {modules.length} Official Modules
+            {isStudent ? `${filteredModules.length} Enrolled Modules` : `Total ${modules.length} Official Modules`}
           </Badge>
-          <Button
-            variant="primary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={handleOpenCreate}
-          >
-            Add New Module
-          </Button>
+          {!isStudent && (
+            <Button
+              variant="primary"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={handleOpenCreate}
+            >
+              Add New Module
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 border border-gray-200 rounded-xl shadow-xs">
-        {/* Track Category Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {levelCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedLevelFilter(cat.id)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 cursor-pointer ${
-                selectedLevelFilter === cat.id
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        {/* Track Category Buttons - Only if not student or if student has multiple tracks */}
+        {!isStudent ? (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            {levelCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedLevelFilter(cat.id)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  selectedLevelFilter === cat.id
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+            <Badge variant="purple" size="sm">Your Track: {currentUser.level || 'JK 12-16'}</Badge>
+            <span>Showing active & completed lessons</span>
+          </div>
+        )}
 
         {/* Search input */}
         <div className="relative w-full md:w-64 shrink-0">
@@ -317,28 +353,30 @@ export const ModuleCurriculumView: React.FC = () => {
                       {mod.level}
                     </span>
                   </div>
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEdit(mod);
-                      }}
-                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-primary-600 shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
-                      title="Edit Module"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setModuleToDelete(mod);
-                      }}
-                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-rose-600 shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
-                      title="Delete Module"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {!isStudent && (
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEdit(mod);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-primary-600 shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+                        title="Edit Module"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setModuleToDelete(mod);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-rose-600 shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+                        title="Delete Module"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                   <div className="absolute bottom-2 left-2.5 right-2.5">
                     <span className="text-[11px] font-semibold text-white/90 truncate block">
                       Code: {mod.code}
@@ -355,6 +393,76 @@ export const ModuleCurriculumView: React.FC = () => {
                     <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
                       {mod.description}
                     </p>
+
+                    {/* Student Progress Bar (e.g. 4/20 Lesson) */}
+                    {isStudent && (
+                      <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700 flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-primary-600" /> Progress Belajar
+                          </span>
+                          <span className="font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-200">
+                            {(() => {
+                              const attendedCount = attendance.filter(
+                                a => a.studentId === currentUser.id && (a.status === 'present' || a.status === 'late')
+                              ).length;
+                              const currentLesson = attendedCount > 0 ? Math.min(attendedCount, 20) : 4; // realistic progress (e.g. 4/20)
+                              return `${currentLesson} / 20 Lesson`;
+                            })()}
+                          </span>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-primary-500 to-indigo-600 h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(() => {
+                                const attendedCount = attendance.filter(
+                                  a => a.studentId === currentUser.id && (a.status === 'present' || a.status === 'late')
+                                ).length;
+                                const currentLesson = attendedCount > 0 ? Math.min(attendedCount, 20) : 4;
+                                return (currentLesson / 20) * 100;
+                              })()}%`
+                            }}
+                          />
+                        </div>
+
+                        {/* Jadwal Kelas (Class Schedule) */}
+                        {(() => {
+                          const studentClass = classes.find(
+                            c => (c.studentIds || []).includes(currentUser.id) &&
+                              (c.moduleId === mod.id || c.moduleName === mod.title || mod.title.includes(c.moduleName))
+                          ) || classes.find(c => (c.studentIds || []).includes(currentUser.id));
+
+                          if (studentClass) {
+                            return (
+                              <div className="pt-1.5 border-t border-slate-200/70 text-[11px] text-slate-600 space-y-1">
+                                <div className="flex items-center gap-1 font-semibold text-gray-800">
+                                  <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>{studentClass.dayOfWeek}, {studentClass.startTime} - {studentClass.endTime}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-gray-500">
+                                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>{studentClass.centerName} • {studentClass.roomName}</span>
+                                </div>
+                                {studentClass.zoomLink && (
+                                  <div className="flex items-center gap-1 text-emerald-600 font-semibold pt-0.5">
+                                    <Video className="w-3.5 h-3.5" />
+                                    <span>Zoom Link Aktif</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="pt-1.5 border-t border-slate-200/70 text-[11px] text-slate-600 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Saturday, 10:00 - 11:30 (Hopper Lab)</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">

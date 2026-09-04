@@ -59,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: 'students', label: 'Student Leads & CRM', icon: <Users className="w-5 h-5" /> },
           { id: 'trial_classes', label: 'Trial & Consult Booking', icon: <Compass className="w-5 h-5" /> },
           { id: 'classes', label: 'Class Slots & Capacity', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'schedule', label: 'Schedule & Timetable', icon: <CalendarDays className="w-5 h-5" /> },
         ];
       case 'teacher':
         return [
@@ -66,7 +67,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: 'my_classes', label: 'Assigned Classes', icon: <BookOpen className="w-5 h-5" /> },
           { id: 'attendance_mark', label: 'Mark Live Attendance', icon: <ClipboardCheck className="w-5 h-5" /> },
           { id: 'my_schedule', label: 'Teaching Schedule', icon: <CalendarDays className="w-5 h-5" /> },
-          { id: 'learning_modules', label: 'Curriculum & Guides', icon: <GraduationCap className="w-5 h-5" /> },
           { id: 'student_progress', label: 'Student Grade & Feedback', icon: <Sparkles className="w-5 h-5" /> },
         ];
       case 'parent':

@@ -27,9 +27,9 @@ import {
 } from 'lucide-react';
 
 export const ScheduleTimetable: React.FC = () => {
-  const { currentUser, classes, users = [], centers, classrooms, selectedCenterId, setSelectedCenterId, addClass } = useApp();
+  const { currentUser, classes, users = [], centers, classrooms, selectedCenterId, setSelectedCenterId, addClass, bookings = [] } = useApp();
 
-  const isAdminCenter = currentUser.role === 'admin_center';
+  const isCenterRestricted = currentUser.role === 'admin_center' || currentUser.role === 'student_advisor';
   const assignedCenterIds = currentUser.centerIds && currentUser.centerIds.length > 0 
     ? currentUser.centerIds 
     : (currentUser.centerId ? [currentUser.centerId] : ['ctr-kemayoran']);
@@ -40,12 +40,32 @@ export const ScheduleTimetable: React.FC = () => {
   const [searchCenterQuery, setSearchCenterQuery] = useState('');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('all'); // Time range filter
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [selectedBookingDetail, setSelectedBookingDetail] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Time Range definitions
+  const TIME_RANGES = [
+    { id: 'all', label: 'All Hours (08:00 - 20:00)', startHour: 8, endHour: 20 },
+    { id: 'morning', label: 'Morning (08:00 - 12:00)', startHour: 8, endHour: 12 },
+    { id: 'afternoon', label: 'Afternoon (12:00 - 17:00)', startHour: 12, endHour: 17 },
+    { id: 'evening', label: 'Evening (17:00 - 20:00)', startHour: 17, endHour: 20 },
+  ];
+
+  const activeTimeRangeObj = TIME_RANGES.find(t => t.id === selectedTimeRange) || TIME_RANGES[0];
+  const baseStartHour = activeTimeRangeObj.startHour;
+  const baseEndHour = activeTimeRangeObj.endHour;
+
+  // Dynamically generated time slots for the chosen range
+  const timeSlots = Array.from({ length: baseEndHour - baseStartHour }, (_, i) => {
+    const h = baseStartHour + i;
+    return `${h < 10 ? '0' : ''}${h}:00`;
+  });
+
   // Available centers for dropdown
-  const availableCenters = isAdminCenter 
+  const availableCenters = isCenterRestricted 
     ? centers.filter(c => assignedCenterIds.includes(c.id))
     : centers;
 
@@ -73,7 +93,7 @@ export const ScheduleTimetable: React.FC = () => {
 
   // Available rooms based on selected centers
   const availableRooms = selectedCenterIds.length === 0
-    ? (isAdminCenter ? classrooms.filter(r => assignedCenterIds.includes(r.centerId)) : classrooms)
+    ? (isCenterRestricted ? classrooms.filter(r => assignedCenterIds.includes(r.centerId)) : classrooms)
     : classrooms.filter(r => selectedCenterIds.includes(r.centerId) || (selectedCenterIds.includes('ctr-online') && r.centerName === 'Online'));
 
   // Week configuration (Google Calendar style: Mon - Sun)
@@ -88,19 +108,23 @@ export const ScheduleTimetable: React.FC = () => {
     { day: 'Sunday', date: 'Sep 6' }
   ];
 
-  // Working Time Slots: 08:00 AM to 19:00 PM (1-hour slots)
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', 
-    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'
-  ];
-
   // Child IDs for parent
   const parentChildIds = new Set([
     ...(currentUser.childrenIds || []),
     ...users.filter(u => u.parentId === currentUser.id).map(u => u.id)
   ]);
 
-  // Filtered Classes based on Role, Center, Room, and Type
+  // Helper to test if a time interval falls within active time range filter
+  const isWithinTimeRange = (startTime: string, endTime: string) => {
+    if (selectedTimeRange === 'all') return true;
+    const [startH] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const eventEndDec = endH + (endM > 0 ? 0.5 : 0);
+    // Overlaps with [baseStartHour, baseEndHour]
+    return Math.max(startH, baseStartHour) < Math.min(eventEndDec, baseEndHour);
+  };
+
+  // Filtered Classes based on Role, Center, Room, Type, and Time Range
   const filteredClasses = classes.filter((cls) => {
     // 1. Super Admin sees all
     if (currentUser.role === 'admin') {
@@ -136,7 +160,33 @@ export const ScheduleTimetable: React.FC = () => {
       });
     const matchesRoom = selectedRoomFilter === 'all' || cls.roomId === selectedRoomFilter || cls.roomName === selectedRoomFilter;
     const matchesType = selectedTypeFilter === 'all' || cls.type === selectedTypeFilter;
-    return matchesCenter && matchesRoom && matchesType;
+    const matchesTime = isWithinTimeRange(cls.startTime, cls.endTime);
+
+    return matchesCenter && matchesRoom && matchesType && matchesTime;
+  });
+
+  // Convert room bookings to calendar events matching center, room, role, and time
+  const filteredBookings = bookings.filter((b) => {
+    if (b.status === 'cancelled') return false;
+
+    // Role filtering
+    if (currentUser.role === 'admin_center' || currentUser.role === 'student_advisor') {
+      if (!assignedCenterIds.includes(b.centerId)) return false;
+    } else if (currentUser.role === 'teacher') {
+      if (b.teacherId !== currentUser.id && b.teacherName !== currentUser.name) return false;
+    }
+
+    const matchesCenter = selectedCenterIds.length === 0 || 
+      selectedCenterIds.includes(b.centerId) || 
+      selectedCenterIds.some(cid => {
+        const found = centers.find(c => c.id === cid);
+        return found && found.name === b.centerName;
+      });
+    const matchesRoom = selectedRoomFilter === 'all' || b.roomId === selectedRoomFilter || b.roomName === selectedRoomFilter;
+    const matchesType = selectedTypeFilter === 'all' || selectedTypeFilter === 'Trial' || selectedTypeFilter === b.bookingType;
+    const matchesTime = isWithinTimeRange(b.startTime, b.endTime);
+
+    return matchesCenter && matchesRoom && matchesType && matchesTime;
   });
 
   // Helper to parse "HH:MM" into minutes from midnight
@@ -187,15 +237,15 @@ export const ScheduleTimetable: React.FC = () => {
     }
   }
 
-  // Calculate pixel top and height for time placement
+  // Calculate pixel top and height for time placement relative to active time range
   const calculatePosition = (startTime: string, endTime: string) => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
 
-    const baseHour = 8; // 08:00 is top 0
+    const baseHour = baseStartHour; // Dynamic from active time range (e.g. 8, 12, 17)
     const startMinutesFromBase = (startH - baseHour) * 60 + startM;
     const endMinutesFromBase = (endH - baseHour) * 60 + endM;
-    const durationMinutes = Math.max(endMinutesFromBase - startMinutesFromBase, 45);
+    const durationMinutes = Math.max(endMinutesFromBase - startMinutesFromBase, 30);
 
     // Each hour slot is 64px tall (approx 1.066px per minute)
     const pxPerMinute = 64 / 60;
@@ -203,6 +253,17 @@ export const ScheduleTimetable: React.FC = () => {
     const height = durationMinutes * pxPerMinute;
 
     return { top: `${top}px`, height: `${height}px` };
+  };
+
+  // Helper to map date (YYYY-MM-DD) to Day name (Monday - Sunday)
+  const getBookingDayOfWeek = (dateStr: string): string => {
+    if (!dateStr) return 'Monday';
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'long' });
+    } catch {
+      return 'Monday';
+    }
   };
 
   // Google Calendar Event Color Palette by module / type
@@ -429,9 +490,23 @@ export const ScheduleTimetable: React.FC = () => {
             >
               <option value="all">All Types</option>
               <option value="Regular">Regular</option>
-              <option value="Trial">Trial</option>
+              <option value="Trial">Trial / Booking</option>
               <option value="Make-up">Make-up</option>
               <option value="Catchup">Catchup</option>
+            </select>
+          </div>
+
+          {/* Time Range Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+            <Clock className="w-3.5 h-3.5 text-gray-500" />
+            <select
+              value={selectedTimeRange}
+              onChange={(e) => setSelectedTimeRange(e.target.value)}
+              className="bg-transparent text-xs font-medium text-gray-700 focus:outline-none"
+            >
+              {TIME_RANGES.map(tr => (
+                <option key={tr.id} value={tr.id}>{tr.label}</option>
+              ))}
             </select>
           </div>
 
@@ -539,7 +614,8 @@ export const ScheduleTimetable: React.FC = () => {
 
               {/* 7 Day Columns with Event Overlays */}
               {daysOfWeek.map((day) => {
-                const dayEvents = filteredClasses.filter(c => c.dayOfWeek === day);
+                const dayClasses = filteredClasses.filter(c => c.dayOfWeek === day);
+                const dayBookings = filteredBookings.filter(b => getBookingDayOfWeek(b.date) === day);
 
                 return (
                   <div 
@@ -551,8 +627,8 @@ export const ScheduleTimetable: React.FC = () => {
                       <div key={time} className="h-16 border-b border-gray-100/80"></div>
                     ))}
 
-                    {/* Events absolute positioned over grid */}
-                    {dayEvents.map((cls) => {
+                    {/* Classes absolute positioned over grid */}
+                    {dayClasses.map((cls) => {
                       const pos = calculatePosition(cls.startTime, cls.endTime);
                       const style = getEventStyle(cls);
                       const isConflict = conflictingClassIds.has(cls.id);
@@ -562,15 +638,15 @@ export const ScheduleTimetable: React.FC = () => {
                           key={cls.id}
                           onClick={() => handleOpenDetail(cls)}
                           style={{ top: pos.top, height: pos.height }}
-                          className={`absolute left-1 right-1 rounded-xl p-2.5 border transition-all cursor-pointer shadow-xs hover:shadow-md hover:z-20 flex flex-col justify-between overflow-hidden ${
+                          className={`absolute left-1 right-1 rounded-xl p-2 border transition-all cursor-pointer shadow-xs hover:shadow-md hover:z-20 flex flex-col justify-between overflow-hidden ${
                             isConflict 
                               ? 'ring-2 ring-rose-500 border-rose-400 bg-rose-50/95 text-rose-900 animate-pulse' 
                               : style.bg
                           }`}
                         >
                           <div>
-                            <div className="flex items-center justify-between gap-1 mb-1">
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
                                 isConflict ? 'bg-rose-100 text-rose-800 border-rose-300' : style.badge
                               }`}>
                                 {isConflict ? '⚠️ CONFLICT' : cls.type}
@@ -583,14 +659,70 @@ export const ScheduleTimetable: React.FC = () => {
                             <h4 className="font-bold text-xs leading-tight line-clamp-1">
                               {cls.name}
                             </h4>
-                            <p className="text-[11px] opacity-80 line-clamp-1 mt-0.5">
+                            <p className="text-[10px] opacity-80 line-clamp-1">
                               {cls.moduleLevel} • {cls.roomName.split('(')[0]}
                             </p>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] opacity-90 pt-1 border-t border-black/5 mt-1">
+                          <div className="flex items-center justify-between text-[10px] opacity-90 pt-0.5 border-t border-black/5 mt-0.5">
                             <span className="truncate max-w-[85px]">👤 {cls.teacherName}</span>
                             <span className="font-bold">👥 {cls.enrolledStudentsCount}/{cls.capacity}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* SA Room / Trial Bookings positioned over grid */}
+                    {dayBookings.map((b) => {
+                      const pos = calculatePosition(b.startTime, b.endTime);
+                      const isConfirmed = b.status === 'confirmed';
+
+                      return (
+                        <div
+                          key={b.id}
+                          onClick={() => {
+                            setSelectedBookingDetail(b);
+                            setSelectedClass(null);
+                            setIsDetailModalOpen(true);
+                          }}
+                          style={{ top: pos.top, height: pos.height }}
+                          className={`absolute left-1.5 right-1.5 rounded-xl p-2 border-2 transition-all cursor-pointer shadow-sm hover:shadow-lg hover:z-30 flex flex-col justify-between overflow-hidden ${
+                            isConfirmed
+                              ? 'bg-amber-50/95 border-amber-400 text-amber-950 ring-1 ring-amber-300'
+                              : 'bg-purple-50/95 border-dashed border-purple-400 text-purple-950'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                isConfirmed
+                                  ? 'bg-amber-200 text-amber-900'
+                                  : 'bg-purple-200 text-purple-900'
+                              }`}>
+                                🎯 {b.bookingType}
+                              </span>
+                              <span className="text-[10px] font-bold opacity-85">
+                                {b.startTime} - {b.endTime}
+                              </span>
+                            </div>
+
+                            <h4 className="font-bold text-xs leading-tight line-clamp-1 text-amber-950">
+                              {b.studentName || b.studentNames?.join(', ') || 'Trial Booking'}
+                            </h4>
+                            <p className="text-[10px] opacity-85 line-clamp-1">
+                              📍 {b.roomName} • {b.studentLevel || 'Prospective'}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] pt-0.5 border-t border-amber-300/40 mt-0.5 font-semibold">
+                            <span className="truncate max-w-[80px]">
+                              {b.teacherName ? `👨‍🏫 ${b.teacherName}` : '⏳ Belum ada guru'}
+                            </span>
+                            <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                              isConfirmed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {isConfirmed ? '✓ Confirmed' : 'Pending'}
+                            </span>
                           </div>
                         </div>
                       );
@@ -653,6 +785,7 @@ export const ScheduleTimetable: React.FC = () => {
                       size="sm"
                       onClick={() => {
                         setSelectedClass(cls);
+                        setSelectedBookingDetail(null);
                         setIsDetailModalOpen(true);
                       }}
                     >
@@ -662,6 +795,69 @@ export const ScheduleTimetable: React.FC = () => {
                 </div>
               );
             })}
+
+            {/* Trial & Special Bookings on Day View */}
+            {filteredBookings.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => {
+                  setSelectedBookingDetail(b);
+                  setSelectedClass(null);
+                  setIsDetailModalOpen(true);
+                }}
+                className={`p-4 rounded-xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer transition-all hover:shadow-md ${
+                  b.status === 'confirmed' ? 'bg-amber-50/70 border-amber-300' : 'bg-purple-50/70 border-dashed border-purple-300'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-white border border-amber-200 shrink-0 text-center min-w-[70px]">
+                    <span className="block text-xs font-bold text-amber-900">{b.startTime}</span>
+                    <span className="block text-[10px] text-gray-400">{b.endTime}</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase bg-amber-100 text-amber-800 border-amber-300">
+                        🎯 {b.bookingType}
+                      </span>
+                      <span className="text-xs font-bold text-purple-700">
+                        {b.studentLevel || 'Prospective Student'}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {b.status === 'confirmed' ? 'Confirmed' : 'Pending Approval'}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 mt-1">
+                      Murid: {b.studentName || b.studentNames?.join(', ')}
+                    </h3>
+                    <p className="text-xs text-gray-600 mt-0.5">{b.centerName} • {b.roomName} • Advisor: {b.advisorName}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs font-medium text-gray-600">
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">ASSIGNED TEACHER</span>
+                    {b.teacherName ? (
+                      <span className="font-bold text-emerald-700">👨‍🏫 {b.teacherName}</span>
+                    ) : (
+                      <span className="text-amber-600 italic">Belum di-assign</span>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedBookingDetail(b);
+                      setSelectedClass(null);
+                      setIsDetailModalOpen(true);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -703,8 +899,12 @@ export const ScheduleTimetable: React.FC = () => {
       {/* Event Details Modal */}
       <Modal
         isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        title="Class Session Details"
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedClass(null);
+          setSelectedBookingDetail(null);
+        }}
+        title={selectedBookingDetail ? "Room Booking / Trial Session Details" : "Class Session Details"}
       >
         {selectedClass && (
           <div className="space-y-4">
@@ -778,6 +978,91 @@ export const ScheduleTimetable: React.FC = () => {
               </Button>
               <Button variant="primary" onClick={() => setIsDetailModalOpen(false)}>
                 Manage Class Batch
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {selectedBookingDetail && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={selectedBookingDetail.bookingType === 'Trial' || selectedBookingDetail.bookingType === 'Trial Regular' ? 'warning' : 'primary'} size="sm">
+                    {selectedBookingDetail.bookingType}
+                  </Badge>
+                  <Badge variant={selectedBookingDetail.status === 'confirmed' ? 'success' : 'warning'} size="sm">
+                    {selectedBookingDetail.status === 'confirmed' ? 'Confirmed' : 'Pending Approval'}
+                  </Badge>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mt-1">
+                  {selectedBookingDetail.studentName || selectedBookingDetail.studentNames?.join(', ') || 'Trial Class Booking'}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Target Level: {selectedBookingDetail.studentLevel || 'Prospective Student'}
+                </p>
+              </div>
+              <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5" /> {selectedBookingDetail.centerName}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 block mb-0.5">DATE & TIME</span>
+                <span className="font-bold text-gray-900 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-primary-500" /> {selectedBookingDetail.date} ({selectedBookingDetail.startTime} - {selectedBookingDetail.endTime})
+                </span>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 block mb-0.5">ASSIGNED ROOM</span>
+                <span className="font-bold text-gray-900 flex items-center gap-1">
+                  <DoorClosed className="w-3.5 h-3.5 text-purple-500" /> {selectedBookingDetail.roomName}
+                </span>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 block mb-0.5">ASSIGNED TEACHER</span>
+                <span className="font-bold text-gray-900 flex items-center gap-1">
+                  <User className="w-3.5 h-3.5 text-emerald-500" /> 
+                  {selectedBookingDetail.teacherName ? (
+                    <span className="text-emerald-700 font-bold">{selectedBookingDetail.teacherName}</span>
+                  ) : (
+                    <span className="text-amber-600 italic">⏳ Menunggu Admin Center</span>
+                  )}
+                </span>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 block mb-0.5">STUDENT ADVISOR (REQUESTER)</span>
+                <span className="font-bold text-gray-900 flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-indigo-500" /> {selectedBookingDetail.advisorName}
+                </span>
+              </div>
+            </div>
+
+            {/* Parent & Contact Information */}
+            {(selectedBookingDetail.parentName || selectedBookingDetail.parentPhone) && (
+              <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-xs text-amber-950 space-y-1">
+                <div className="font-bold text-amber-900 uppercase tracking-wide text-[10px]">Data Orang Tua / Kontak:</div>
+                <div className="flex justify-between">
+                  <span>Nama Parent:</span>
+                  <span className="font-bold">{selectedBookingDetail.parentName || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>No HP / WhatsApp:</span>
+                  <span className="font-bold">{selectedBookingDetail.parentPhone || '-'}</span>
+                </div>
+                {selectedBookingDetail.parentEmail && (
+                  <div className="flex justify-between">
+                    <span>Email:</span>
+                    <span className="font-mono text-[11px]">{selectedBookingDetail.parentEmail}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>
+                Tutup
               </Button>
             </div>
           </div>

@@ -136,7 +136,7 @@ export interface RoomBooking {
   centerName: string;
   advisorId: string;
   advisorName: string;
-  bookingType: 'Trial' | 'Catchup' | 'Consult' | 'Internal Meeting';
+  bookingType: 'Trial' | 'Trial Regular' | 'Catchup' | 'Consult' | 'Internal Meeting';
   date: string;
   startTime: string;
   endTime: string;
@@ -151,4 +151,6 @@ export interface RoomBooking {
   studentLevel?: string;
   paymentStatus?: 'unpaid' | 'paid';
   trialCompleted?: boolean;
+  teacherId?: string;
+  teacherName?: string;
 }

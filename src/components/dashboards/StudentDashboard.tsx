@@ -14,8 +14,10 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-export const StudentDashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
+export const StudentDashboard: React.FC<{ onNavigate: (tab: string) => void; activeTab?: string }> = ({ onNavigate, activeTab = 'dashboard' }) => {
   const { currentUser, modules, projects, addProject } = useApp();
+
+  const isProjectsTabOnly = activeTab === 'my_projects';
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [projectTitle, setProjectTitle] = useState('');
@@ -73,46 +75,48 @@ export const StudentDashboard: React.FC<{ onNavigate: (tab: string) => void }> =
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-rose-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Module Progress</span>
-            <BookOpen className="w-5 h-5 text-rose-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">75% Complete</div>
-          <div className="w-full bg-gray-100 h-2 rounded-full mt-2 overflow-hidden">
-            <div className="bg-rose-500 h-full rounded-full" style={{ width: '75%' }}></div>
-          </div>
-        </Card>
+      {/* KPI Cards - Only shown on Student Portal Overview */}
+      {!isProjectsTabOnly && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-rose-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Module Progress</span>
+              <BookOpen className="w-5 h-5 text-rose-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">75% Complete</div>
+            <div className="w-full bg-gray-100 h-2 rounded-full mt-2 overflow-hidden">
+              <div className="bg-rose-500 h-full rounded-full" style={{ width: '75%' }}></div>
+            </div>
+          </Card>
 
-        <Card className="border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Uploaded Projects</span>
-            <Award className="w-5 h-5 text-emerald-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{myProjects.length} Projects</div>
-          <p className="text-xs text-success-600 font-semibold mt-1">⭐ Portfolio Showcase</p>
-        </Card>
+          <Card className="border-l-4 border-l-emerald-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Uploaded Projects</span>
+              <Award className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">{myProjects.length} Projects</div>
+            <p className="text-xs text-success-600 font-semibold mt-1">⭐ Portfolio Showcase</p>
+          </Card>
 
-        <Card className="border-l-4 border-l-indigo-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Next Session</span>
-            <Calendar className="w-5 h-5 text-indigo-500" />
-          </div>
-          <div className="mt-2 text-lg font-extrabold text-gray-900">Saturday, 10:00 AM</div>
-          <p className="text-xs text-gray-500 mt-1">Jakarta - Kemayoran - Hopper Lab</p>
-        </Card>
+          <Card className="border-l-4 border-l-indigo-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Next Session</span>
+              <Calendar className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div className="mt-2 text-lg font-extrabold text-gray-900">Saturday, 10:00 AM</div>
+            <p className="text-xs text-gray-500 mt-1">Jakarta - Kemayoran - Hopper Lab</p>
+          </Card>
 
-        <Card className="border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Coding XP</span>
-            <Sparkles className="w-5 h-5 text-amber-500" />
-          </div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">1,450 XP</div>
-          <p className="text-xs text-amber-600 font-semibold mt-1">Level 4 Coder</p>
-        </Card>
-      </div>
+          <Card className="border-l-4 border-l-amber-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Coding XP</span>
+              <Sparkles className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-gray-900">1,450 XP</div>
+            <p className="text-xs text-amber-600 font-semibold mt-1">Level 4 Coder</p>
+          </Card>
+        </div>
+      )}
 
       {/* Student Portfolio Showcase */}
       <Card>

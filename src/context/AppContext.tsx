@@ -107,6 +107,28 @@ const mapUser = (r: any): User => {
     }
   }
 
+  let parsedHandledParentIds: string[] = [];
+  if (Array.isArray(r.handled_parent_ids)) {
+    parsedHandledParentIds = r.handled_parent_ids;
+  } else if (typeof r.handled_parent_ids === 'string' && r.handled_parent_ids.trim() !== '') {
+    try {
+      parsedHandledParentIds = JSON.parse(r.handled_parent_ids);
+    } catch {
+      parsedHandledParentIds = r.handled_parent_ids.replace(/[\{\}\"\'\[\]]/g, '').split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+
+  let parsedChildrenIds: string[] = [];
+  if (Array.isArray(r.children_ids)) {
+    parsedChildrenIds = r.children_ids;
+  } else if (typeof r.children_ids === 'string' && r.children_ids.trim() !== '') {
+    try {
+      parsedChildrenIds = JSON.parse(r.children_ids);
+    } catch {
+      parsedChildrenIds = r.children_ids.replace(/[\{\}\"\'\[\]]/g, '').split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+
   return {
     id: r.id,
     name: r.name,
@@ -117,11 +139,12 @@ const mapUser = (r: any): User => {
     status: r.status || 'active',
     centerId: r.center_id || '',
     centerIds: parsedCenterIds,
+    handledParentIds: parsedHandledParentIds,
     specialization: r.specialization || '',
     level: r.level || '',
     joinDate: r.join_date ? String(r.join_date).split('T')[0] : new Date().toISOString().split('T')[0],
     parentId: r.parent_id || '',
-    childrenIds: r.children_ids || [],
+    childrenIds: parsedChildrenIds,
   };
 };
 
@@ -220,7 +243,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [projects, setProjects] = useState<StudentProject[]>([]);
-  const [bookings, setBookings] = useState<RoomBooking[]>([]);
+  const [bookings, setBookings] = useState<RoomBooking[]>(() => {
+    try {
+      const saved = localStorage.getItem('knsms_room_bookings');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+    return [
+      {
+        id: 'bk-sample-1',
+        roomId: 'room-kem-1',
+        roomName: 'iMac Lab Alpha',
+        centerId: 'ctr-kemayoran',
+        centerName: 'Jakarta - Kemayoran',
+        advisorId: 'usr-sa-1',
+        advisorName: 'Syafii',
+        bookingType: 'Trial',
+        date: '2026-09-05',
+        startTime: '15:00',
+        endTime: '16:00',
+        studentNames: ['Faris Alamsyah'],
+        status: 'pending',
+        parentName: 'Bapak Alamsyah',
+        parentEmail: 'alamsyah@gmail.com',
+        parentPhone: '081298877665',
+        studentName: 'Faris Alamsyah',
+        studentEmail: 'faris@student.kodingnext.com',
+        studentLevel: 'JK 7-9',
+        paymentStatus: 'unpaid',
+        trialCompleted: false,
+      },
+      {
+        id: 'bk-sample-2',
+        roomId: 'room-kbp-1',
+        roomName: 'Lab Room 1',
+        centerId: 'ctr-bandung-kbp',
+        centerName: 'Bandung - KBP',
+        advisorId: 'usr-sa-1',
+        advisorName: 'Syafii',
+        bookingType: 'Trial',
+        date: '2026-09-06',
+        startTime: '10:00',
+        endTime: '11:00',
+        studentNames: ['Alya Putri'],
+        status: 'confirmed',
+        parentName: 'Ibu Rina',
+        parentEmail: 'rina.putri@gmail.com',
+        parentPhone: '081377889900',
+        studentName: 'Alya Putri',
+        studentEmail: 'alya@student.kodingnext.com',
+        studentLevel: 'LK 4-6',
+        paymentStatus: 'unpaid',
+        trialCompleted: false,
+        teacherId: 'usr-teacher-1',
+        teacherName: 'Ahmad Fauzi',
+      }
+    ];
+  });
 
   const EMPTY_USER: User = {
     id: '', name: '', email: '', role: 'student', avatar: '', phone: '',
@@ -398,28 +478,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUser = async (id: string, updatedData: Partial<User>) => {
+    const cleanEmail = updatedData.email ? updatedData.email.trim().toLowerCase() : null;
+
+    // Check if updating email conflicts with another user
+    if (cleanEmail) {
+      const emailConflict = users.find(u => u.id !== id && u.email?.trim().toLowerCase() === cleanEmail);
+      if (emailConflict) {
+        throw new Error(`Email "${cleanEmail}" sudah digunakan oleh pengguna lain (${emailConflict.name}).`);
+      }
+    }
+
     await executeNeonQuery(
       `UPDATE users SET
-         name=COALESCE($2,name), phone=COALESCE($3,phone),
-         role=COALESCE($4,role), status=COALESCE($5,status),
-         avatar=COALESCE($6,avatar), center_id=COALESCE($7,center_id),
-         center_ids=COALESCE($8,center_ids),
-         specialization=COALESCE($9,specialization),
-         level=COALESCE($10,level)
+         name=COALESCE($2,name), 
+         email=COALESCE($3,email),
+         phone=COALESCE($4,phone),
+         role=COALESCE($5,role), 
+         status=COALESCE($6,status),
+         avatar=COALESCE($7,avatar), 
+         center_id=COALESCE($8,center_id),
+         center_ids=COALESCE($9,center_ids),
+         handled_parent_ids=COALESCE($10,handled_parent_ids),
+         children_ids=COALESCE($11,children_ids),
+         specialization=COALESCE($12,specialization),
+         level=COALESCE($13,level)
        WHERE id=$1`,
       [
         id, 
         updatedData.name || null, 
+        cleanEmail,
         updatedData.phone || null,
         updatedData.role || null, 
         updatedData.status || null,
         updatedData.avatar || null, 
         updatedData.centerId || null,
         updatedData.centerIds || null,
+        updatedData.handledParentIds || null,
+        updatedData.childrenIds || null,
         updatedData.specialization || null,
         updatedData.level || null
       ]
     );
+
+    // Keep currentUser updated in session if editing own account
+    if (currentUser && currentUser.id === id) {
+      setCurrentUser(prev => ({
+        ...prev,
+        ...updatedData,
+        email: cleanEmail || prev.email,
+      }));
+    }
+
     await refreshDb();
   };
 
@@ -570,18 +679,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setClassrooms(prev => prev.filter(r => r.id !== id));
   };
 
-  // ─── Booking CRUD (local only — no bookings table in schema) ─────────────
+  // ─── Booking CRUD (Persisted to localStorage) ──────────────────────────
   const addBooking = async (bookingData: Omit<RoomBooking, 'id'>) => {
     const newBooking: RoomBooking = { ...bookingData, id: `bk-${Date.now()}` };
-    setBookings(prev => [newBooking, ...prev]);
+    setBookings(prev => {
+      const updated = [newBooking, ...prev];
+      try {
+        localStorage.setItem('knsms_room_bookings', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save bookings to localStorage:', e);
+      }
+      return updated;
+    });
   };
 
   const updateBooking = async (id: string, updatedData: Partial<RoomBooking>) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updatedData } : b));
+    setBookings(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, ...updatedData } : b);
+      try {
+        localStorage.setItem('knsms_room_bookings', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save bookings to localStorage:', e);
+      }
+      return updated;
+    });
   };
 
   const deleteBooking = async (id: string) => {
-    setBookings(prev => prev.filter(b => b.id !== id));
+    setBookings(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      try {
+        localStorage.setItem('knsms_room_bookings', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save bookings to localStorage:', e);
+      }
+      return updated;
+    });
   };
 
   // ─── Attendance ──────────────────────────────────────────────────────────

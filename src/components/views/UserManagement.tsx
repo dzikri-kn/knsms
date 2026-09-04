@@ -39,6 +39,10 @@ export const UserManagement: React.FC = () => {
   const [adminPasswordMsg, setAdminPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isChangingUserPassword, setIsChangingUserPassword] = useState(false);
 
+  // Create/Edit User Modal State
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -191,11 +195,13 @@ export const UserManagement: React.FC = () => {
     setSelectedParentIds([]);
     setSelectedModules(['JK 12-16 Python First']);
     setStudentSearchQuery('');
+    setSaveError(null);
     setIsCreateModalOpen(true);
   };
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
+    setSaveError(null);
     setName(user.name);
     setEmail(user.email);
     setPhone(user.phone || '');
@@ -217,7 +223,7 @@ export const UserManagement: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedCenter = centers.find(c => c.id === centerId);
     const assignedCenters = centers.filter(c => selectedCenterIds.includes(c.id));
@@ -254,38 +260,47 @@ export const UserManagement: React.FC = () => {
         ? parentCenterNames
         : (isMultiCenterRole ? multipleCenterNames : selectedCenter?.name);
 
-    if (editingUser) {
-      updateUser(editingUser.id, {
-        name,
-        email,
-        phone,
-        role,
-        centerId: finalCenterId,
-        centerIds: finalCenterIds,
-        centerName: finalCenterName,
-        childrenIds: role === 'parent' ? selectedStudentIds : undefined,
-        handledParentIds: role === 'student_advisor' ? selectedParentIds : undefined,
-        level: role === 'student' ? level : undefined,
-        specialization: role === 'teacher' ? specializationStr : undefined,
-      });
-    } else {
-      addUser({
-        name,
-        email,
-        phone,
-        role,
-        status: 'active',
-        avatar: '',
-        centerId: finalCenterId,
-        centerIds: finalCenterIds,
-        centerName: finalCenterName,
-        childrenIds: role === 'parent' ? selectedStudentIds : undefined,
-        handledParentIds: role === 'student_advisor' ? selectedParentIds : undefined,
-        level: role === 'student' ? level : undefined,
-        specialization: role === 'teacher' ? specializationStr : undefined,
-      }, customPassword || 'kodingnext123');
+    try {
+      setIsSavingUser(true);
+      setSaveError(null);
+      if (editingUser) {
+        await updateUser(editingUser.id, {
+          name,
+          email,
+          phone,
+          role,
+          centerId: finalCenterId,
+          centerIds: finalCenterIds,
+          centerName: finalCenterName,
+          childrenIds: role === 'parent' ? selectedStudentIds : undefined,
+          handledParentIds: role === 'student_advisor' ? selectedParentIds : undefined,
+          level: role === 'student' ? level : undefined,
+          specialization: role === 'teacher' ? specializationStr : undefined,
+        });
+      } else {
+        await addUser({
+          name,
+          email,
+          phone,
+          role,
+          status: 'active',
+          avatar: '',
+          centerId: finalCenterId,
+          centerIds: finalCenterIds,
+          centerName: finalCenterName,
+          childrenIds: role === 'parent' ? selectedStudentIds : undefined,
+          handledParentIds: role === 'student_advisor' ? selectedParentIds : undefined,
+          level: role === 'student' ? level : undefined,
+          specialization: role === 'teacher' ? specializationStr : undefined,
+        }, customPassword || 'kodingnext123');
+      }
+      setIsCreateModalOpen(false);
+    } catch (err: any) {
+      console.error('Save user failed:', err);
+      setSaveError(err.message || 'Gagal menyimpan data pengguna ke database.');
+    } finally {
+      setIsSavingUser(false);
     }
-    setIsCreateModalOpen(false);
   };
 
   const handleOpenChangePassword = (user: User) => {
@@ -502,10 +517,17 @@ export const UserManagement: React.FC = () => {
       {/* Modal Create/Edit */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => !isSavingUser && setIsCreateModalOpen(false)}
         title={editingUser ? 'Edit User Profile' : 'Add New User'}
       >
         <form onSubmit={handleSave} className="space-y-4">
+          {saveError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+              <span>{saveError}</span>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name</label>
             <input
@@ -1032,11 +1054,20 @@ export const UserManagement: React.FC = () => {
           )}
 
           <div className="pt-3 flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              disabled={isSavingUser}
+              onClick={() => setIsCreateModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
-              Save User
+            <Button 
+              type="submit" 
+              variant="primary"
+              disabled={isSavingUser}
+            >
+              {isSavingUser ? 'Saving...' : 'Save User'}
             </Button>
           </div>
         </form>
